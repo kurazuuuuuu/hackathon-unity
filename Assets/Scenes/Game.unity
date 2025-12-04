@@ -149,8 +149,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CursorEffectManager
   cursorEffectPrefab: {fileID: 5653641916186460994, guid: 08d9d6c3bf0464c6ea132d985f1c8e95, type: 3}
+  cursorEffectCirclePrefab: {fileID: 9124785484573013709, guid: d05ae8f8228954c66a6ee9176ba7f6d2, type: 3}
   effectDuration: 1
-  spawnDistance: 0.2
+  spawnDistance: 0.5
 --- !u!4 &612353024
 Transform:
   m_ObjectHideFlags: 0
