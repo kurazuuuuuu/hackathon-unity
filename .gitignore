@@ -102,3 +102,6 @@ InitTestScene*.unity*
 
 # MacOS
 .DS_Store
+
+# 外部アセット
+/[Aa]ssets/ExternalAssets/
