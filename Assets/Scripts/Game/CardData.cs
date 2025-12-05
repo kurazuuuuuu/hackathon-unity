@@ -26,6 +26,9 @@ namespace Game
         [Header("Charge")] //凸数
         [SerializeField] private int charge;
 
+        [Header("Cost")] //使用時の体力消費量
+        [SerializeField] private int cost;
+
         public string CardId => cardId;
         public string CardName => cardName;
         public CardType CardType => cardType;
@@ -33,5 +36,6 @@ namespace Game
         public int Heal => heal;
         public CardAbility Ability => ability;
         public int Charge => charge;
+        public int Cost => cost;
     }
 }

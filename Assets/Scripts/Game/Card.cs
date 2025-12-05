@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using TMPro;
 using Game;
@@ -12,12 +13,38 @@ public class Card : MonoBehaviour
     [SerializeField] private TextMeshProUGUI abilityText;
     [SerializeField] private TextMeshProUGUI chargeText;
 
+    [Header("Drag Settings")]
+    [SerializeField] private bool isDraggable = true;
+
     // カードの基本情報
     public string Name { get; private set; }
+    public CardType Type { get; private set; }
     public int Power { get; private set; }
     public int Heal { get; private set; }
     public CardAbility Ability { get; private set; }
     public int Charge { get; private set; }
+    public int Cost { get; private set; }
+
+    // ドラッグ状態
+    public bool IsDraggable
+    {
+        get => isDraggable;
+        set
+        {
+            if (isDraggable != value)
+            {
+                isDraggable = value;
+                OnDraggableChanged?.Invoke(isDraggable);
+            }
+        }
+    }
+
+    public bool IsDragging { get; private set; } = false;
+
+    // イベント
+    public event Action<bool> OnDraggableChanged;
+    public event Action OnDragStart;
+    public event Action OnDragEnd;
 
     /// <summary>
     /// CardDataを使用してカードを初期化する
@@ -32,10 +59,12 @@ public class Card : MonoBehaviour
         }
 
         this.Name = data.CardName;
+        this.Type = data.CardType;
         this.Power = data.Power;
         this.Heal = data.Heal;
         this.Ability = data.Ability;
         this.Charge = data.Charge;
+        this.Cost = data.Cost;
 
         UpdateUI();
     }
@@ -59,7 +88,7 @@ public class Card : MonoBehaviour
 
         if (abilityText != null)
         {
-            abilityText.text = Ability.Description;
+            abilityText.text = Ability?.Description ?? "";
         }
 
         if (chargeText != null) // Optional
@@ -67,6 +96,48 @@ public class Card : MonoBehaviour
             chargeText.text = $"{Charge}";
         }
     }
+
+    #region Drag Methods
+    /// <summary>
+    /// ドラッグを開始
+    /// </summary>
+    public void StartDrag()
+    {
+        if (!isDraggable) return;
+
+        IsDragging = true;
+        OnDragStart?.Invoke();
+    }
+
+    /// <summary>
+    /// ドラッグを終了
+    /// </summary>
+    public void EndDrag()
+    {
+        IsDragging = false;
+        OnDragEnd?.Invoke();
+    }
+
+    /// <summary>
+    /// ドラッグを有効化
+    /// </summary>
+    public void EnableDrag()
+    {
+        IsDraggable = true;
+    }
+
+    /// <summary>
+    /// ドラッグを無効化
+    /// </summary>
+    public void DisableDrag()
+    {
+        IsDraggable = false;
+        if (IsDragging)
+        {
+            EndDrag();
+        }
+    }
+    #endregion
 
     /// <summary>
     /// アビリティを発動する
