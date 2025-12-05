@@ -105,3 +105,6 @@ InitTestScene*.unity*
 
 # 外部アセット
 /[Aa]ssets/ExternalAssets/
+
+# TextMesh Pro
+/[Aa]ssets/TextMesh Pro/
