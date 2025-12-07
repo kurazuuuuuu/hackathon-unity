@@ -12,6 +12,7 @@ namespace Game.Data
         // ユーザー情報
         public string UserName;
         public int GachaTickets;
+        public bool IsFirstGacha = true; // 初回ガチャフラグ
 
         // 所有カード (カードID -> 所持数)
         public Dictionary<string, int> OwnedCards = new Dictionary<string, int>();
@@ -72,7 +73,7 @@ namespace Game.Data
                  // Primary/Secondary conversion needs helper or manual map
                  var deckDto = new DeckDto
                  {
-                     deck_id = System.Guid.NewGuid().ToString(), // 仮: 本当は永続化すべき
+                     deck_id = global::System.Guid.NewGuid().ToString(), // 仮: 本当は永続化すべき
                      name = deck.DeckName,
                      primary_cards = new List<string>(deck.PrimaryCards),
                      secondary_cards = new List<string>(deck.SupportCards)

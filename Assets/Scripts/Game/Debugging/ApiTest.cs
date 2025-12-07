@@ -6,7 +6,15 @@ public class ApiTest : MonoBehaviour
 {
     async void Start()
     {
-        Debug.Log("Starting API Test...");
+        Debug.Log("Starting API Test with Mock Data...");
+
+        // Ensure ApiClient exists
+        if (ApiClient.Instance == null)
+        {
+            Debug.LogWarning("ApiClient instance not found. Creating a temporary one.");
+            var go = new GameObject("ApiClient");
+            go.AddComponent<ApiClient>();
+        }
 
         // 1. Create dummy data
         var userData = new UserData("TestUser");
@@ -16,23 +24,25 @@ public class ApiTest : MonoBehaviour
 
         Debug.Log($"Prepared UserData: {userData.UserName}, Cards: {userData.OwnedCards.Count}");
 
-        // 2. Wait for server check (optional, but good practice)
+        // 2. Set Mock Tokens (Simulate Login)
+        Debug.Log("Setting Mock Tokens...");
+        ApiClient.Instance.SetTokens(
+            "mock_access_token",
+            "mock_id_token_user_123",
+            "mock_refresh_token"
+        );
+
+        // 3. Wait for server check (optional)
         if (!ApiClient.Instance.IsServerAvailable)
         {
-            Debug.Log("Waiting for server connection...");
+            Debug.Log("Waiting for server connection check...");
             await ApiClient.Instance.CheckServerConnection();
         }
 
         if (!ApiClient.Instance.IsServerAvailable)
         {
-            Debug.LogError("Server is not available. Make sure the backend is running.");
-            return;
+            Debug.LogWarning("Server might not be available, but attempting save with mock tokens anyway...");
         }
-
-        // 3. Login (if needed, otherwise skip or mock token)
-        // For this test, we assume ApiClient might already have a token or we try to save anyway.
-        // If login is required, we should call Login first.
-        // await ApiClient.Instance.Login("user", "email", "pass");
 
         // 4. Save
         Debug.Log("Sending Save Request...");

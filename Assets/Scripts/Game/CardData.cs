@@ -29,6 +29,9 @@ namespace Game
         [Header("Cost")] //使用時の体力消費量
         [SerializeField] private int cost;
 
+        [Header("Gacha Info")] // ガチャ関連
+        [SerializeField] private int rarity; // レアリティ (3, 4, 5)
+
         public string CardId => !string.IsNullOrEmpty(cardId) ? cardId : name;
         public string CardName => cardName;
         public CardType CardType => cardType;
@@ -37,5 +40,6 @@ namespace Game
         public CardAbility Ability => ability;
         public int Charge => charge;
         public int Cost => cost;
+        public int Rarity => rarity;
     }
 }

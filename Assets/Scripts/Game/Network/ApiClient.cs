@@ -3,6 +3,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
+using Game.Data;
 
 namespace Game.Network
 {
