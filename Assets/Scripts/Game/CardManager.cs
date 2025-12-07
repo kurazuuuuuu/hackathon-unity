@@ -43,10 +43,43 @@ namespace Game
         /// </summary>
         private void LoadCardsFromResources()
         {
-            CardData[] loadedCards = Resources.LoadAll<CardData>(resourcesPath);
+            // パス指定なしでResources以下の全CardDataを読み込む（サブフォルダ含む）
+            CardData[] loadedCards = Resources.LoadAll<CardData>("");
             allCards.Clear();
             allCards.AddRange(loadedCards);
             Debug.Log($"Resourcesからカードを読み込み: {loadedCards.Length} 枚");
+        }
+
+        // ... (BuildCardDictionary is unchanged) ...
+
+        /// <summary>
+        /// ランダムな主力カードを取得
+        /// </summary>
+        public CardData GetRandomPrimaryCard()
+        {
+            EnsureInitialized();
+            var primaryCards = allCards.FindAll(c => c.CardType == CardType.Primary);
+            if (primaryCards.Count == 0)
+            {
+                Debug.LogWarning("主力カードが見つかりません");
+                return null;
+            }
+            return primaryCards[Random.Range(0, primaryCards.Count)];
+        }
+
+        /// <summary>
+        /// ランダムなサポート・特殊カードを取得
+        /// </summary>
+        public CardData GetRandomSupportCard()
+        {
+            EnsureInitialized();
+            var supportCards = allCards.FindAll(c => c.CardType == CardType.Support || c.CardType == CardType.Special);
+            if (supportCards.Count == 0)
+            {
+                Debug.LogWarning("サポートカードが見つかりません");
+                return null;
+            }
+            return supportCards[Random.Range(0, supportCards.Count)];
         }
 
         /// <summary>

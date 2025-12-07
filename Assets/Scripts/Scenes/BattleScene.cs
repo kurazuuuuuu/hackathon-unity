@@ -1,8 +1,10 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using Game.Battle;
 using Game.System;
+using Game.Data;
 
 namespace Game.Scenes
 {
@@ -31,6 +33,7 @@ namespace Game.Scenes
 
         [Header("Debug")]
         [SerializeField] private bool useDebugPlayers = true;
+        [SerializeField] private List<CardData> debugPrimaryCardsP1 = new List<CardData>(); // P1の主力カード手動設定
 
         private void Awake()
         {
@@ -162,6 +165,24 @@ namespace Game.Scenes
         {
             var player1 = new Player("プレイヤー1", 3); // 資格3つ
             var player2 = new Player("プレイヤー2", 5); // 資格5つ
+
+            // インスペクターで設定されたカードがある場合、P1のデッキを作成
+            if (debugPrimaryCardsP1 != null && debugPrimaryCardsP1.Count > 0)
+            {
+                Debug.Log($"Debug: Setting up fixed deck for {player1.Name} with {debugPrimaryCardsP1.Count} cards.");
+                player1.Deck = new DeckData("Debug Fixed Deck");
+                
+                // 設定された順序で追加
+                foreach (var cardData in debugPrimaryCardsP1)
+                {
+                    if (cardData != null)
+                    {
+                        // IDが空の場合は名前をフォールバックとして使用（CardData修正済みだが念のため）
+                        string id = !string.IsNullOrEmpty(cardData.CardId) ? cardData.CardId : cardData.name;
+                        player1.Deck.AddPrimaryCard(id);
+                    }
+                }
+            }
 
             battleManager.StartBattle(player1, player2);
         }

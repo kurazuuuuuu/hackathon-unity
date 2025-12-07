@@ -142,11 +142,11 @@ public class Card : MonoBehaviour
     /// <summary>
     /// アビリティを発動する
     /// </summary>
-    public void UseAbility()
+    public void UseAbility(Card target = null)
     {
         if (Ability != null)
         {
-            Ability.Activate(this);
+            Ability.Activate(this, target);
         }
         else
         {

@@ -32,12 +32,31 @@ namespace Game
 
         private void Awake()
         {
-            // スロットが設定されていない場合は自動生成
+            // スロットが設定されていない場合
             if (cardSlots.Count == 0)
             {
-                for (int i = 0; i < maxSlots; i++)
+                // 子オブジェクトを検索してスロットとしてリストに追加
+                foreach (Transform child in transform)
                 {
-                    cardSlots.Add(transform);
+                    cardSlots.Add(child);
+                }
+
+                // それでもスロットがない場合は、実行時にスロットを生成
+                if (cardSlots.Count == 0)
+                {
+                    Debug.Log("スロットが見つからないため、自動生成します");
+                    for (int i = 0; i < maxSlots; i++)
+                    {
+                        var slotGO = new GameObject($"Slot_{i}");
+                        slotGO.transform.SetParent(this.transform, false);
+                        
+                        var rect = slotGO.AddComponent<RectTransform>();
+                        // 水平配置: -160, 0, 160 (幅600のゾーンを想定)
+                        // i=0 -> -160, i=1 -> 0, i=2 -> 160
+                        rect.anchoredPosition = new Vector2((i - 1) * 160, 0);
+                        
+                        cardSlots.Add(slotGO.transform);
+                    }
                 }
             }
         }

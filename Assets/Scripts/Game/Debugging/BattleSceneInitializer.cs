@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using Game.Battle;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -44,9 +45,16 @@ namespace Game.Debugging
             InitializeTextElements();
             InitializeButtons();
             
+            // Layout (Primary Zones, Deck, Hand)
+            SetupBattleLayout();
+
             Debug.Log("Battleシーン初期化完了！");
         }
 
+
+        /// <summary>
+        /// 日本語フォントをすべてのTextMeshProUGUIに適用
+        /// </summary>
         /// <summary>
         /// 日本語フォントをすべてのTextMeshProUGUIに適用
         /// </summary>
@@ -60,6 +68,12 @@ namespace Game.Debugging
                 return;
             }
 
+            // フォントのテクスチャフィルタをPoint（ドット絵用）に設定
+            if (fontAsset.material != null && fontAsset.material.mainTexture != null)
+            {
+                fontAsset.material.mainTexture.filterMode = FilterMode.Point;
+            }
+
             // すべてのTextMeshProUGUIに適用（非アクティブ含む）
             var allTexts = Resources.FindObjectsOfTypeAll<TextMeshProUGUI>();
             foreach (var tmp in allTexts)
@@ -68,12 +82,127 @@ namespace Game.Debugging
                 if (tmp.gameObject.scene.name != null && !string.IsNullOrEmpty(tmp.gameObject.scene.name))
                 {
                     tmp.font = fontAsset;
+                    
+                    // マテリアルをフォントアセットのデフォルトに強制リセット
+                    // これにより、古いマテリアルプリセット（黄色い文字など）が原因の文字化けを防ぐ
+                    tmp.fontSharedMaterial = fontAsset.material;
+
                     EditorUtility.SetDirty(tmp);
                 }
             }
-
-            Debug.Log($"日本語フォント適用完了: {fontAsset.name}");
+            
+            Debug.Log($"日本語フォント適用完了: {fontAsset.name} (FilterMode: Point, Material Reset)");
         }
+
+        private static void SetupBattleLayout()
+        {
+            var battleManager = FindAnyObjectByType<BattleManager>();
+            if (battleManager == null) return;
+
+            var canvas = FindAnyObjectByType<Canvas>();
+            if (canvas == null) return;
+
+            // Player 1 Zone (Bottom/Left is standard, but sketch implies P1 is bottom?) 
+            // Sketch shows: Primary (3 cards) -> Deck -> Hand
+            // Let's assume Player 1 is "Self/Bottom" and Player 2 is "Opponent/Top" for now, or match existing coordinates.
+            // Existing text coordinates: Player1 (-150, -50), Player2 (150, -50). This suggests side-by-side or top-down logic isn't fully clear.
+            // Let's try to follow a standard card game layout: P1 Bottom, P2 Top.
+
+            // Layout Container for P1
+            var p1Zone = CreatePrimaryZone("Player1_PrimaryZone", new Vector2(0, -200), canvas.transform);
+            var p1Deck = CreateDeckVisual("Player1_Deck", new Vector2(400, -300), canvas.transform);
+            // Hand area is usually dynamic, handled by CardSpawnArea?
+
+            // Layout Container for P2
+            var p2Zone = CreatePrimaryZone("Player2_PrimaryZone", new Vector2(0, 200), canvas.transform);
+            // Rotate P2 zone? Usually opponent cards face them.
+            
+            // Assign to Players
+            if (battleManager.Player1 != null) battleManager.Player1.SetPrimaryZone(p1Zone);
+            if (battleManager.Player2 != null) battleManager.Player2.SetPrimaryZone(p2Zone);
+
+            Debug.Log("Battle Layout Constructed.");
+        }
+
+        private static PrimaryCardZone CreatePrimaryZone(string name, Vector2 position, Transform parent)
+        {
+            var go = GameObject.Find(name);
+            if (go == null)
+            {
+                go = new GameObject(name);
+                go.transform.SetParent(parent, false);
+            }
+
+            var rect = go.GetComponent<RectTransform>();
+            if (rect == null) rect = go.AddComponent<RectTransform>();
+            
+            rect.anchoredPosition = position;
+            rect.sizeDelta = new Vector2(600, 250); // Big enough for 3 cards
+
+            var zone = go.GetComponent<PrimaryCardZone>();
+            if (zone == null) zone = go.AddComponent<PrimaryCardZone>();
+
+            // Clean up old slots if any (optional, but safer to re-create)
+            // For now, simpler to check if children exist.
+            if (go.transform.childCount == 0)
+            {
+                // Create 3 slots
+                for (int i = 0; i < 3; i++)
+                {
+                    var slot = new GameObject($"Slot_{i}");
+                    slot.transform.SetParent(go.transform, false);
+                    var slotRect = slot.AddComponent<RectTransform>();
+                    // Horizontal layout: -200, 0, 200
+                    slotRect.anchoredPosition = new Vector2((i - 1) * 160, 0); 
+                    // Card size is roughly 140x200?
+                }
+            }
+            
+            // Assign slots to zone (reflection or manual assignment needed if list is private/serialized)
+            // PrimaryCardZone uses GetComponent children or serialized list.
+            // Since it's a serialized list, we should try to set it via SerializedObject
+            var so = new SerializedObject(zone);
+            so.Update();
+            var slotsProp = so.FindProperty("cardSlots");
+            if (slotsProp != null)
+            {
+                slotsProp.ClearArray();
+                for (int i = 0; i < go.transform.childCount; i++)
+                {
+                    slotsProp.InsertArrayElementAtIndex(i);
+                    slotsProp.GetArrayElementAtIndex(i).objectReferenceValue = go.transform.GetChild(i);
+                }
+            }
+            so.ApplyModifiedProperties();
+
+            return zone;
+        }
+
+        private static GameObject CreateDeckVisual(string name, Vector2 position, Transform parent)
+        {
+             var go = GameObject.Find(name);
+            if (go == null)
+            {
+                go = new GameObject(name);
+                go.transform.SetParent(parent, false);
+            }
+            
+            var rect = go.GetComponent<RectTransform>();
+            if (rect == null) rect = go.AddComponent<RectTransform>();
+            rect.anchoredPosition = position;
+            rect.sizeDelta = new Vector2(120, 160); // Card size
+
+            var img = go.GetComponent<Image>();
+            if (img == null) img = go.AddComponent<Image>();
+            img.color = new Color(0.3f, 0.3f, 0.3f); // Placeholder gray
+
+            // Optional: Label
+            // ...
+
+            return go;
+        }
+
+
 
         /// <summary>
         /// CardManagerをセットアップ

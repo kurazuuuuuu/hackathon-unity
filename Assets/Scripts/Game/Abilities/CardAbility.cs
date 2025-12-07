@@ -16,6 +16,7 @@ namespace Game.Abilities
         /// 能力を発動する
         /// </summary>
         /// <param name="user">能力を使用したカードの所有者など</param>
-        public abstract void Activate(Card user);
+        /// <param name="target">能力の対象（あれば）</param>
+        public abstract void Activate(Card user, Card target = null);
     }
 }

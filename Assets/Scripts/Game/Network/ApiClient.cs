@@ -120,12 +120,13 @@ namespace Game.Network
         #region User Data
         /// <summary>
         /// ユーザーデータを保存
-        /// POST /v1/user/save
+        /// PUT /v1/user/save
         /// </summary>
-        public async Task<ApiResponse<SaveResponse>> SaveUserData(Data.UserData userData)
+        public async Task<ApiResponse<StatusResponseDto>> SaveUserData(Data.UserData userData)
         {
-            var request = new SaveDataRequest { save_data = userData };
-            return await Post<SaveResponse>("/v1/user/save", request, true);
+            var profile = userData.ToApiProfile();
+            var request = new UserSaveRequestDto { profile = profile };
+            return await Put<StatusResponseDto>("/v1/user/save", request, true);
         }
         #endregion
 
@@ -143,10 +144,20 @@ namespace Game.Network
 
         private async Task<ApiResponse<T>> Post<T>(string endpoint, object body, bool requireAuth = true)
         {
+            return await SendJsonRequest<T>(endpoint, "POST", body, requireAuth);
+        }
+
+        private async Task<ApiResponse<T>> Put<T>(string endpoint, object body, bool requireAuth = true)
+        {
+            return await SendJsonRequest<T>(endpoint, "PUT", body, requireAuth);
+        }
+
+        private async Task<ApiResponse<T>> SendJsonRequest<T>(string endpoint, string method, object body, bool requireAuth)
+        {
             string url = baseUrl + endpoint;
             string json = JsonUtility.ToJson(body);
 
-            using (UnityWebRequest request = new UnityWebRequest(url, "POST"))
+            using (UnityWebRequest request = new UnityWebRequest(url, method))
             {
                 byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
                 request.uploadHandler = new UploadHandlerRaw(bodyRaw);
@@ -225,19 +236,6 @@ namespace Game.Network
         public string access_token;
         public string id_token;
         public string refresh_token;
-    }
-
-    [Serializable]
-    public class SaveDataRequest
-    {
-        public Data.UserData save_data;
-    }
-
-    [Serializable]
-    public class SaveResponse
-    {
-        public string status;
-        public string updated_at;
     }
 
     [Serializable]

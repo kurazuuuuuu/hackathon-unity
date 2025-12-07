@@ -29,7 +29,7 @@ namespace Game
         [Header("Cost")] //使用時の体力消費量
         [SerializeField] private int cost;
 
-        public string CardId => cardId;
+        public string CardId => !string.IsNullOrEmpty(cardId) ? cardId : name;
         public string CardName => cardName;
         public CardType CardType => cardType;
         public int Power => power;

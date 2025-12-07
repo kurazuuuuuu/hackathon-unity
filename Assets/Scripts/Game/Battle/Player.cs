@@ -53,6 +53,14 @@ namespace Game.Battle
             MaxHP = MAX_HP;
         }
 
+        [Header("Zones")]
+        [SerializeField] private PrimaryCardZone primaryZone;
+
+        public void SetPrimaryZone(PrimaryCardZone zone)
+        {
+            primaryZone = zone;
+        }
+
         /// <summary>
         /// デッキを初期化（主力カード配置、山札作成）
         /// </summary>
@@ -67,12 +75,40 @@ namespace Game.Battle
             Debug.Log($"{Name} のデッキ初期化: 主力 {Deck.PrimaryCards.Count} 枚, サポート {Deck.SupportCards.Count} 枚");
 
             // 主力カードを場に配置
-            foreach (var cardId in Deck.PrimaryCards)
+            // PrimaryCardZoneがある場合はそちらを使用
+            if (primaryZone != null)
             {
-                var card = cardManager.SpawnCard(cardId);
-                if (card != null)
+                primaryZone.Clear();
+                foreach (var cardId in Deck.PrimaryCards)
                 {
-                    PrimaryCardsInPlay.Add(card);
+                    bool success = primaryZone.PlaceCardById(cardId);
+                    if (!success)
+                    {
+                        Debug.LogWarning($"{Name}: 主力カード {cardId} の配置に失敗しました");
+                    }
+                    else 
+                    {
+                         // Zone内で生成されたカードを取得してPrimaryCardsInPlayに追加する処理が必要だが
+                         // 現状のPrimaryCardZoneは内部でリストを持っているので、
+                         // Player側で持つ必要性は薄れるかもしれない。
+                         // いったんリンクだけしておく、あるいはPrimaryCardZoneから取得できるようにする
+                    }
+                }
+                
+                // PrimaryCardsInPlayを更新
+                PrimaryCardsInPlay.Clear();
+                PrimaryCardsInPlay.AddRange(primaryZone.PlacedCards);
+            }
+            else
+            {
+                // 旧ロジック（バックアップ）
+                foreach (var cardId in Deck.PrimaryCards)
+                {
+                    var card = cardManager.SpawnCard(cardId);
+                    if (card != null)
+                    {
+                        PrimaryCardsInPlay.Add(card);
+                    }
                 }
             }
 
@@ -90,17 +126,33 @@ namespace Game.Battle
         private void CreateDebugDeck(CardManager cardManager)
         {
             Deck = new DeckData("Debug Deck");
-            // ランダムにカードを追加（本来はCardManagerから適切なIDを取得すべき）
-            // ここでは仮実装として、CardManagerにある全カードからランダムに選ぶ
+            
+            // 主力カードを追加
             for (int i = 0; i < DeckData.PRIMARY_CARD_COUNT; i++)
             {
-                var cardData = cardManager.GetRandomCardData();
-                if (cardData != null) Deck.AddPrimaryCard(cardData.CardId);
+                var cardData = cardManager.GetRandomPrimaryCard();
+                if (cardData != null) 
+                {
+                    Deck.AddPrimaryCard(cardData.CardId);
+                }
+                else
+                {
+                    Debug.LogError("デバッグデッキ構築エラー: 主力カードが不足しています");
+                }
             }
+            
+            // サポート・特殊カードを追加
             for (int i = 0; i < DeckData.SUPPORT_CARD_COUNT; i++)
             {
-                var cardData = cardManager.GetRandomCardData();
-                if (cardData != null) Deck.AddSupportCard(cardData.CardId);
+                var cardData = cardManager.GetRandomSupportCard();
+                if (cardData != null)
+                {
+                    Deck.AddSupportCard(cardData.CardId);
+                }
+                 else
+                {
+                    Debug.LogError("デバッグデッキ構築エラー: サポートカードが不足しています");
+                }
             }
         }
 
@@ -175,8 +227,12 @@ namespace Game.Battle
         public bool CanPlayCard(Card card)
         {
             if (card == null) return false;
+            
             // コストが体力以下なら使用可能
-            // TODO: CardDataからコストを取得する必要がある
+            if (CurrentHP < card.Cost)
+            {
+                return false;
+            }
             return true;
         }
     }

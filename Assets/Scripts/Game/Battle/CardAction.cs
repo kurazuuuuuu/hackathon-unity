@@ -22,7 +22,7 @@ namespace Game.Battle
             }
 
             // コストチェック
-            if (player.CurrentHP < card.Cost)
+            if (!player.CanPlayCard(card))
             {
                 Debug.LogWarning($"{player.Name} は体力が足りません（必要: {card.Cost}, 現在: {player.CurrentHP}）");
                 return;
@@ -64,8 +64,8 @@ namespace Game.Battle
 
             // 対象の主力カードに効果を付与
             // TODO: 効果付与のロジックを実装（バフなど）
-            // 現状はAbilityを発動させる
-            support.UseAbility();
+            // 現状はAbilityを発動させる（対象を指定）
+            support.UseAbility(target);
 
             // 手札から削除
             player.Hand.Remove(support);
