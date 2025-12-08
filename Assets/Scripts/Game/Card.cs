@@ -68,6 +68,67 @@ public class Card : MonoBehaviour
 
         UpdateUI();
     }
+    
+    /// <summary>
+    /// CardDataBaseを使用してカードを初期化する（新API）
+    /// </summary>
+    public void Initialize(Game.CardDataBase data)
+    {
+        if (data == null)
+        {
+            Debug.LogError("CardDataBase is null!");
+            return;
+        }
+        
+        // CardDataの場合は既存メソッドを使用
+        if (data is CardData legacyData)
+        {
+            Initialize(legacyData);
+            return;
+        }
+
+        this.Name = data.CardName;
+        this.Type = data.CardType;
+        this.Power = data.Power;
+        this.Heal = 0; // CardDataBaseにはHealがない
+        this.Ability = data.Ability;
+        this.Charge = data.Charge;
+        this.Cost = data.Cost;
+
+        UpdateUI();
+    }
+
+    /// <summary>
+    /// CardDataを使用してカードを初期化する（ガチャ結果表示用）
+    /// レアリティに応じた見た目も適用する
+    /// </summary>
+    public void InitializeForGacha(CardData data)
+    {
+        Initialize(data);
+        
+        // Apply rarity visual style
+        var visualizer = GetComponent<Game.UI.CardVisualizer>();
+        if (visualizer == null)
+        {
+            visualizer = gameObject.AddComponent<Game.UI.CardVisualizer>();
+        }
+        visualizer.ApplyRarityStyle(data.Rarity);
+    }
+    
+    /// <summary>
+    /// CardDataBaseを使用してカードを初期化する（ガチャ結果表示用・新API）
+    /// </summary>
+    public void InitializeForGacha(Game.CardDataBase data)
+    {
+        Initialize(data);
+        
+        var visualizer = GetComponent<Game.UI.CardVisualizer>();
+        if (visualizer == null)
+        {
+            visualizer = gameObject.AddComponent<Game.UI.CardVisualizer>();
+        }
+        visualizer.ApplyRarityStyle(data.Rarity);
+    }
 
     private void UpdateUI()
     {

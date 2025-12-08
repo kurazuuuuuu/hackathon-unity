@@ -3,6 +3,7 @@ using Game.Gacha;
 using Game.Data;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Game.Debugging
 {
@@ -18,7 +19,7 @@ namespace Game.Debugging
             RunSimulation();
         }
 
-        public void RunSimulation()
+        public async void RunSimulation()
         {
             // 1. Setup Manager (Use existing or create new auto-loaded one)
             GachaManager manager = GachaManager.Instance;
@@ -89,7 +90,7 @@ namespace Game.Debugging
                 if (SimulateFirstTime) user.IsFirstGacha = true; 
                 else user.IsFirstGacha = false;
 
-                var card = manager.PullSingle(user);
+                var card = await manager.PullSingle(user);
                 
                 if (card != null)
                 {
@@ -101,14 +102,14 @@ namespace Game.Debugging
 
             // Report Single
             float rate5 = (float)count5 / Iterations * 100f;
-            Debug.Log($"Single Simulation Complete.\n5-Star: {count5} ({rate5:F2}%)");
+            Debug.Log($"Single Simulation Complete.\n☆5: {count5} ({rate5:F2}%)");
 
             // Test 10-Pull Ticket Consumption & Inventory Update
             Debug.Log($"Testing 10-Pull Ticket Consumption & Inventory Update... (Owned: {user.OwnedCards.Count})");
             int initialOwnedCount = user.OwnedCards.Count;
             user.GachaTickets = 20;
             
-            var results = manager.PullTen(user);
+            var results = await manager.PullTen(user);
             
             if (results != null && results.Count == 10)
             {
@@ -132,10 +133,10 @@ namespace Game.Debugging
                     else list3.Add(info);
                 }
 
-                Debug.Log("=== 10-Pull Results ===");
-                Debug.Log($"[5-Star] ({list5.Count}): {string.Join(", ", list5)}");
-                Debug.Log($"[4-Star] ({list4.Count}): {string.Join(", ", list4)}");
-                Debug.Log($"[3-Star] ({list3.Count}): {string.Join(", ", list3)}");
+                Debug.Log($"=== 10-Pull Results ===");
+                Debug.Log($"[☆5] ({list5.Count}): {string.Join(", ", list5)}");
+                Debug.Log($"[☆4] ({list4.Count}): {string.Join(", ", list4)}");
+                Debug.Log($"[☆3] ({list3.Count}): {string.Join(", ", list3)}");
                 Debug.Log("=======================");
             }
             else
@@ -146,7 +147,7 @@ namespace Game.Debugging
 
             // Test Insufficient Tickets
             user.GachaTickets = 5;
-            var failedResults = manager.PullTen(user);
+            var failedResults = await manager.PullTen(user);
             if (failedResults == null)
             {
                 Debug.Log("Insufficient Ticket Check Passed (PullTen returned null).");

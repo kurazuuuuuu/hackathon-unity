@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2500889121015778081}
   - component: {fileID: 5523659804847546907}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: CursorEffectManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -48,3 +48,4 @@ MonoBehaviour:
   cursorEffectCirclePrefab: {fileID: 9124785484573013709, guid: d05ae8f8228954c66a6ee9176ba7f6d2, type: 3}
   effectDuration: 0.3
   spawnDistance: 1
+  maxPoolSize: 50

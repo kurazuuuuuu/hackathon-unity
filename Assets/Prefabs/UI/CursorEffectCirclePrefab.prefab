@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 6216473161156665523}
   - component: {fileID: 3327916968651784911}
   - component: {fileID: 3066660001517543772}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: CursorEffectCirclePrefab
   m_TagString: Untagged
   m_Icon: {fileID: 0}

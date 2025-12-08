@@ -1,6 +1,8 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Game.Data;
+using Game.Network;
 
 namespace Game.Gacha
 {
@@ -9,6 +11,7 @@ namespace Game.Gacha
         public static GachaManager Instance { get; private set; }
 
         [SerializeField] private GachaRateTable rateTable;
+        [SerializeField] private bool isDebugMode = false;
 
         private void Awake()
         {
@@ -37,12 +40,16 @@ namespace Game.Gacha
         public const int TICKET_COST_SINGLE = 1;
         public const int TICKET_COST_TEN = 10;
 
-        public CardData PullSingle(UserData user)
+        public async Task<CardData> PullSingle(UserData user)
         {
             if (rateTable == null)
             {
-                Debug.LogError("GachaRateTable is not assigned!");
-                return null;
+                LoadFromResources();
+                if (rateTable == null)
+                {
+                    Debug.LogError("GachaRateTable is not assigned and auto-load failed!");
+                    return null;
+                }
             }
 
             // Ticket Check
@@ -52,6 +59,12 @@ namespace Game.Gacha
                 return null;
             }
 
+            // Save Before Pull (if not debug)
+            if (!isDebugMode && ApiClient.Instance != null)
+            {
+                 await ApiClient.Instance.SaveUserData(user);
+            }
+
             user.GachaTickets -= TICKET_COST_SINGLE;
 
             var result = PullInternal(user);
@@ -59,15 +72,26 @@ namespace Game.Gacha
             {
                 user.AddCard(result.CardId);
             }
+
+            // Save After Pull (if not debug)
+            if (!isDebugMode && ApiClient.Instance != null)
+            {
+                 await ApiClient.Instance.SaveUserData(user);
+            }
+
             return result;
         }
 
-        public List<CardData> PullTen(UserData user)
+        public async Task<List<CardData>> PullTen(UserData user)
         {
             if (rateTable == null)
             {
-                Debug.LogError("GachaRateTable is not assigned!");
-                return null;
+                LoadFromResources();
+                if (rateTable == null)
+                {
+                    Debug.LogError("GachaRateTable is not assigned and auto-load failed!");
+                    return null;
+                }
             }
 
             // Ticket Check
@@ -75,6 +99,12 @@ namespace Game.Gacha
             {
                 Debug.LogWarning("Not enough Gacha Tickets!");
                 return null;
+            }
+
+            // Save Before Pull
+            if (!isDebugMode && ApiClient.Instance != null)
+            {
+                 await ApiClient.Instance.SaveUserData(user);
             }
 
             user.GachaTickets -= TICKET_COST_TEN;
@@ -107,6 +137,12 @@ namespace Game.Gacha
                     user.AddCard(card.CardId);
                     results.Add(card);
                 }
+            }
+
+            // Save After Pull
+            if (!isDebugMode && ApiClient.Instance != null)
+            {
+                 await ApiClient.Instance.SaveUserData(user);
             }
 
             return results;
@@ -286,7 +322,7 @@ namespace Game.Gacha
                 else rateTable.Standard5Stars.Add(c);
             }
             
-            Debug.Log($"GachaManager data loaded from Resources. 5*: {rateTable.Featured5Stars.Count+rateTable.Standard5Stars.Count}, 4*: {rateTable.Pool4StarSupport.Count+rateTable.Pool4StarSpecial.Count}, 3*: {rateTable.Pool3StarSupport.Count+rateTable.Pool3StarSpecial.Count}");
+            Debug.Log($"GachaManager data loaded from Resources. ☆5: {rateTable.Featured5Stars.Count+rateTable.Standard5Stars.Count}, ☆4: {rateTable.Pool4StarSupport.Count+rateTable.Pool4StarSpecial.Count}, ☆3: {rateTable.Pool3StarSupport.Count+rateTable.Pool3StarSpecial.Count}");
         }
 
         private void InjectRarity(CardData card, int rarity)
