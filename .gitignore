@@ -108,3 +108,6 @@ InitTestScene*.unity*
 
 # TextMesh Pro
 /[Aa]ssets/TextMesh Pro/
+
+# Resources
+/[Aa]ssets/Resources/
