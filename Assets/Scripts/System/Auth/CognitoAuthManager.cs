@@ -72,24 +72,28 @@ namespace Game.System.Auth
 
         #region Sign Up
         /// <summary>
-        /// ユーザー登録
+        /// ユーザー登録（メールアドレス + パスワード）
         /// </summary>
-        public async Task<(bool success, string message)> SignUp(string username, string password)
+        public async Task<(bool success, string message)> SignUp(string email, string password)
         {
             try
             {
                 var signUpRequest = new SignUpRequest
                 {
                     ClientId = clientId,
-                    Username = username,
-                    Password = password
+                    Username = email, // emailをusernameとして使用
+                    Password = password,
+                    UserAttributes = new List<AttributeType>
+                    {
+                        new AttributeType { Name = "email", Value = email }
+                    }
                 };
 
                 var response = await _providerClient.SignUpAsync(signUpRequest);
                 
-                Debug.Log($"[CognitoAuth] サインアップ成功: {username}");
-                OnSignUpComplete?.Invoke(true, "アカウントが作成されました");
-                return (true, "アカウントが作成されました");
+                Debug.Log($"[CognitoAuth] サインアップ成功: {email}");
+                OnSignUpComplete?.Invoke(true, "確認メールを送信しました。メール内のリンクをクリックして登録を完了してください。");
+                return (true, "確認メールを送信しました");
             }
             catch (UsernameExistsException)
             {
@@ -114,20 +118,20 @@ namespace Game.System.Auth
         /// <summary>
         /// 確認コードの検証
         /// </summary>
-        public async Task<(bool success, string message)> ConfirmSignUp(string username, string confirmationCode)
+        public async Task<(bool success, string message)> ConfirmSignUp(string email, string confirmationCode)
         {
             try
             {
                 var request = new ConfirmSignUpRequest
                 {
                     ClientId = clientId,
-                    Username = username,
+                    Username = email, // emailをusernameとして使用
                     ConfirmationCode = confirmationCode
                 };
 
                 await _providerClient.ConfirmSignUpAsync(request);
                 
-                Debug.Log($"[CognitoAuth] 確認完了: {username}");
+                Debug.Log($"[CognitoAuth] 確認完了: {email}");
                 OnConfirmSignUpComplete?.Invoke(true, "アカウントが確認されました");
                 return (true, "アカウントが確認されました");
             }
@@ -154,9 +158,9 @@ namespace Game.System.Auth
 
         #region Sign In
         /// <summary>
-        /// ログイン（USER_PASSWORD_AUTH フロー）
+        /// ログイン（メールアドレス + パスワード）
         /// </summary>
-        public async Task<(bool success, string message)> SignIn(string username, string password)
+        public async Task<(bool success, string message)> SignIn(string email, string password)
         {
             try
             {
@@ -166,7 +170,7 @@ namespace Game.System.Auth
                     ClientId = clientId,
                     AuthParameters = new Dictionary<string, string>
                     {
-                        { "USERNAME", username },
+                        { "USERNAME", email }, // emailをusernameとして使用
                         { "PASSWORD", password }
                     }
                 };
@@ -176,7 +180,7 @@ namespace Game.System.Auth
                 if (response.AuthenticationResult != null)
                 {
                     SetTokens(response.AuthenticationResult);
-                    Debug.Log($"[CognitoAuth] ログイン成功: {username}");
+                    Debug.Log($"[CognitoAuth] ログイン成功: {email}");
                     OnAuthenticationComplete?.Invoke(true, "ログイン成功");
                     return (true, "ログイン成功");
                 }
@@ -192,7 +196,7 @@ namespace Game.System.Auth
             }
             catch (NotAuthorizedException)
             {
-                var msg = "ユーザー名またはパスワードが正しくありません";
+                var msg = "メールアドレスまたはパスワードが正しくありません";
                 OnAuthenticationComplete?.Invoke(false, msg);
                 return (false, msg);
             }

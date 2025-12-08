@@ -10,7 +10,24 @@ namespace Game.System
     /// </summary>
     public class SceneController : MonoBehaviour
     {
-        public static SceneController Instance { get; private set; }
+        private static SceneController _instance;
+        public static SceneController Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    _instance = FindObjectOfType<SceneController>();
+                    if (_instance == null)
+                    {
+                        GameObject go = new GameObject("SceneController");
+                        _instance = go.AddComponent<SceneController>();
+                        DontDestroyOnLoad(go);
+                    }
+                }
+                return _instance;
+            }
+        }
 
         [Header("Settings")]
         [SerializeField] private float minLoadingTime = 0.5f;
@@ -27,12 +44,12 @@ namespace Game.System
 
         private void Awake()
         {
-            if (Instance == null)
+            if (_instance == null)
             {
-                Instance = this;
+                _instance = this;
                 DontDestroyOnLoad(gameObject);
             }
-            else
+            else if (_instance != this)
             {
                 Destroy(gameObject);
             }
@@ -139,6 +156,14 @@ namespace Game.System
         public async Task GoToBattle()
         {
             await LoadScene(SceneNames.Battle);
+        }
+
+        /// <summary>
+        /// ガチャへ
+        /// </summary>
+        public async Task GoToGacha()
+        {
+            await LoadScene(SceneNames.Capsule);
         }
     }
 }

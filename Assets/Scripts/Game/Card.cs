@@ -10,6 +10,7 @@ public class Card : MonoBehaviour
     [SerializeField] private TextMeshProUGUI nameText;
     [SerializeField] private TextMeshProUGUI powerText;
     [SerializeField] private TextMeshProUGUI healText;
+    [SerializeField] private TextMeshProUGUI costText;
     [SerializeField] private TextMeshProUGUI abilityText;
     [SerializeField] private TextMeshProUGUI chargeText;
 
@@ -20,10 +21,17 @@ public class Card : MonoBehaviour
     public string Name { get; private set; }
     public CardType Type { get; private set; }
     public int Power { get; private set; }
+    
+    // Health (Primary cards have HP)
+    public int MaxHealth { get; private set; }
+    public int CurrentHealth { get; private set; }
+    public bool IsDead => CurrentHealth <= 0;
+
     public int Heal { get; private set; }
     public CardAbility Ability { get; private set; }
     public int Charge { get; private set; }
     public int Cost { get; private set; }
+    public int ActionCost { get; private set; }
 
     // ドラッグ状態
     public bool IsDraggable
@@ -45,6 +53,7 @@ public class Card : MonoBehaviour
     public event Action<bool> OnDraggableChanged;
     public event Action OnDragStart;
     public event Action OnDragEnd;
+    public event Action<int> OnHealthChanged; // Event for health updates
 
     /// <summary>
     /// CardDataを使用してカードを初期化する
@@ -65,6 +74,11 @@ public class Card : MonoBehaviour
         this.Ability = data.Ability;
         this.Charge = data.Charge;
         this.Cost = data.Cost;
+        this.ActionCost = data.ActionCost;
+
+        // Initialize Health
+        this.MaxHealth = data.Health;
+        this.CurrentHealth = this.MaxHealth;
 
         UpdateUI();
     }
@@ -94,6 +108,19 @@ public class Card : MonoBehaviour
         this.Ability = data.Ability;
         this.Charge = data.Charge;
         this.Cost = data.Cost;
+        this.ActionCost = data.ActionCost;
+        
+        // Handle Primary Card Data (New API)
+        if (data is PrimaryCardData primaryData)
+        {
+            this.MaxHealth = primaryData.Health;
+            this.CurrentHealth = this.MaxHealth;
+        }
+        else
+        {
+            this.MaxHealth = 0; 
+            this.CurrentHealth = 0;
+        }
 
         UpdateUI();
     }
@@ -130,6 +157,37 @@ public class Card : MonoBehaviour
         visualizer.ApplyRarityStyle(data.Rarity);
     }
 
+    private void Awake()
+    {
+        // Auto-bind UI elements if missing (Fix for Prefabs with disconnected Card component)
+        if (nameText == null) nameText = FindUI<TextMeshProUGUI>("NameText");
+        if (powerText == null) powerText = FindUI<TextMeshProUGUI>("PowerText");
+        if (healText == null) healText = FindUI<TextMeshProUGUI>("HealthText"); // Primary uses HealthText
+        if (healText == null) healText = FindUI<TextMeshProUGUI>("HealText");   // Support might use HealText
+        if (abilityText == null) abilityText = FindUI<TextMeshProUGUI>("AbilityText");
+        if (chargeText == null) chargeText = FindUI<TextMeshProUGUI>("ChargeText");
+        if (costText == null) costText = FindUI<TextMeshProUGUI>("CostText");
+    }
+
+    private T FindUI<T>(string name) where T : Component
+    {
+        // Try to find under Content first (Standard structure)
+        Transform content = transform.Find("Content");
+        if (content != null)
+        {
+            Transform target = content.Find(name);
+            if (target != null) return target.GetComponent<T>();
+        }
+
+        // Fallback to recursive search
+        var components = GetComponentsInChildren<T>(true);
+        foreach (var c in components)
+        {
+             if (c.gameObject.name == name) return c;
+        }
+        return null;
+    }
+
     private void UpdateUI()
     {
         if (nameText != null)
@@ -142,9 +200,23 @@ public class Card : MonoBehaviour
             powerText.text = $"P: {Power}";
         }
 
+        if (costText != null)
+        {
+            costText.text = $"{Cost}";
+        }
+
         if (healText != null)
         {
-            healText.text = $"H: {Heal}";
+            // If it's a Primary card, maybe show Health instead of Heal?
+            // Or use a separate text field if available. Reusing healText for now if it's primary.
+            if (Type == CardType.Primary)
+            {
+                 healText.text = $"HP: {CurrentHealth}/{MaxHealth}";
+            }
+            else
+            {
+                 healText.text = $"H: {Heal}";
+            }
         }
 
         if (abilityText != null)
@@ -156,6 +228,94 @@ public class Card : MonoBehaviour
         {
             chargeText.text = $"{Charge}";
         }
+    }
+
+    // Status Effects
+    public System.Collections.Generic.List<Game.Battle.StatusEffects.StatusEffect> StatusEffects { get; private set; } = new System.Collections.Generic.List<Game.Battle.StatusEffects.StatusEffect>();
+    
+    // Logic
+    public int TurnsInHand { get; set; } = 0;
+
+    public void AddStatus(Game.Battle.StatusEffects.StatusEffect effect)
+    {
+        if (effect == null) return;
+        
+        var instance = effect.Clone();
+        instance.Initialize(this);
+        StatusEffects.Add(instance);
+        UpdateUI(); // Show status icon?
+        Debug.Log($"{Name} gained status: {effect.DisplayName}");
+    }
+
+    public void RemoveStatus(Game.Battle.StatusEffects.StatusEffect effect)
+    {
+        if (StatusEffects.Contains(effect))
+        {
+            StatusEffects.Remove(effect);
+            UpdateUI();
+        }
+    }
+    
+    public void OnTurnStart()
+    {
+        // Iterate backwards to allow removal
+        for (int i = StatusEffects.Count - 1; i >= 0; i--)
+        {
+            StatusEffects[i].OnTurnStart();
+        }
+    }
+    
+    public void OnTurnEnd()
+    {
+        for (int i = StatusEffects.Count - 1; i >= 0; i--)
+        {
+            StatusEffects[i].OnTurnEnd();
+        }
+    }
+
+    public void TakeDamage(int damage)
+    {
+        if (IsDead) return;
+
+        // Hook: OnTakeDamage
+        for (int i = StatusEffects.Count - 1; i >= 0; i--)
+        {
+            StatusEffects[i].OnTakeDamage(ref damage);
+        }
+
+        CurrentHealth -= damage;
+        if (CurrentHealth < 0) CurrentHealth = 0;
+        
+        UpdateUI();
+        OnHealthChanged?.Invoke(CurrentHealth);
+
+        if (IsDead)
+        {
+            Debug.Log($"{Name} has been defeated!");
+            // Handle death logic via events or manager
+        }
+    }
+    
+    // Hook for dealing damage (called by CardAction/Ability)
+    public int CalculateDamage(int baseDamage)
+    {
+        int finalDamage = baseDamage;
+         for (int i = StatusEffects.Count - 1; i >= 0; i--)
+        {
+            StatusEffects[i].OnDealDamage(ref finalDamage);
+        }
+        return finalDamage;
+    }
+
+    public void RecoverHealth(int amount)
+    {
+        if (IsDead) return; // Usually dead cards don't heal, but game rules might vary
+
+        CurrentHealth += amount;
+        if (CurrentHealth > MaxHealth) CurrentHealth = MaxHealth;
+
+        UpdateUI();
+        OnHealthChanged?.Invoke(CurrentHealth);
     }
 
     #region Drag Methods

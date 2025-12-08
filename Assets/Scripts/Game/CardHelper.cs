@@ -27,28 +27,35 @@ namespace Game
         /// </summary>
         public static CardType GetCardTypeFromId(string cardId)
         {
-            if (string.IsNullOrEmpty(cardId) || cardId.Length < 2) return CardType.Support;
+            if (string.IsNullOrEmpty(cardId)) return CardType.Support;
             
-            char firstChar = cardId[0];
-            
-            // 5x: Primary cards
-            if (firstChar == '5') return CardType.Primary;
-            
-            // 4x: Support cards
-            if (firstChar == '4') return CardType.Support;
-            
-            // 3x: Check second character
-            if (firstChar == '3')
+            // If ID is short, it might be just "5A" etc.
+            if (cardId.Length >= 2)
             {
-                char secondChar = cardId[1];
-                // 3A-3E: Support, 3F onwards: Special
-                if (secondChar >= 'A' && secondChar <= 'E')
+                char firstChar = cardId[0];
+                
+                // 5x: Primary cards
+                if (firstChar == '5') return CardType.Primary;
+                
+                // 4x: Support cards
+                if (firstChar == '4') return CardType.Support;
+                
+                // 3x: Check second character
+                if (firstChar == '3')
                 {
-                    return CardType.Support;
+                    if (cardId.Length >= 2)
+                    {
+                        char secondChar = cardId[1];
+                        // 3A-3E: Support, 3F onwards: Special
+                        if (secondChar >= 'A' && secondChar <= 'E')
+                        {
+                            return CardType.Support;
+                        }
+                    }
+                    return CardType.Special;
                 }
-                return CardType.Special;
             }
-            
+            // Fallback for names like "5A" which are 2 chars long
             return CardType.Support;
         }
         

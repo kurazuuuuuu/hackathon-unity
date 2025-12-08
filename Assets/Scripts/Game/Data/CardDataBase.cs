@@ -16,6 +16,7 @@ namespace Game
         [Header("Stats")]
         [SerializeField] protected int power;      // 攻撃力
         [SerializeField] protected int cost;       // 使用時の体力消費量
+        [SerializeField] protected int actionCost = 1; // 行動コスト (デフォルト1)
         
         [Header("Effects")]
         [SerializeField] protected CardAbility ability;           // 特殊効果
@@ -29,6 +30,7 @@ namespace Game
         public string CardName => cardName;
         public int Power => power;
         public int Cost => cost;
+        public int ActionCost => actionCost;
         public CardAbility Ability => ability;
         public CardAbility PassiveEffect => passiveEffect;
         public int Charge => charge;

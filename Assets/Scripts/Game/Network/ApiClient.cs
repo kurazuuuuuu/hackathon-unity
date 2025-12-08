@@ -22,6 +22,9 @@ namespace Game.Network
         public string UserId => CognitoAuthManager.Instance?.UserId;
         public bool IsServerAvailable { get; private set; } = false;
 
+        // ユーザーデータ（キャッシュ）
+        public UserData UserData { get; private set; }
+
         // サーバー接続確認完了時のイベント
         public event Action<bool> OnServerCheckComplete;
 
@@ -75,9 +78,9 @@ namespace Game.Network
 
         #region Authentication
         /// <summary>
-        /// ログイン（CognitoAuthManager経由）
+        /// ログイン（CognitoAuthManager経由 - メールアドレス）
         /// </summary>
-        public async Task<ApiResponse<LoginResponse>> Login(string username, string password)
+        public async Task<ApiResponse<LoginResponse>> Login(string email, string password)
         {
             if (CognitoAuthManager.Instance == null)
             {
@@ -88,7 +91,7 @@ namespace Game.Network
                 };
             }
 
-            var (success, message) = await CognitoAuthManager.Instance.SignIn(username, password);
+            var (success, message) = await CognitoAuthManager.Instance.SignIn(email, password);
 
             if (success)
             {
@@ -123,6 +126,23 @@ namespace Game.Network
         #endregion
 
         #region User Data
+        /// <summary>
+        /// ユーザーデータを取得
+        /// GET /v1/user
+        /// </summary>
+        public async Task<UserData> FetchUserData()
+        {
+            var response = await Get<UserResponseDto>("/v1/user", true);
+            if (response.Success && response.Data != null)
+            {
+                if (UserData == null) UserData = new UserData();
+                UserData.FromApiProfile(response.Data.profile);
+                return UserData;
+            }
+            Debug.LogError($"ユーザーデータ取得失敗: {response.Error}");
+            return null;
+        }
+
         /// <summary>
         /// ユーザーデータを保存
         /// PUT /v1/user/save

@@ -22,6 +22,21 @@ namespace Game.Battle
         // 依存関係
         private CardManager cardManager;
 
+        [Header("UI References")]
+        [SerializeField] private Transform p1HandArea;
+        [SerializeField] private Transform p2HandArea;
+        [SerializeField] private PrimaryCardZone p1PrimaryZone;
+        [SerializeField] private PrimaryCardZone p2PrimaryZone;
+        
+        // Use Setter for Builder script interaction
+        public void SetUIReferences(Transform h1, Transform h2, PrimaryCardZone z1, PrimaryCardZone z2)
+        {
+            p1HandArea = h1;
+            p2HandArea = h2;
+            p1PrimaryZone = z1;
+            p2PrimaryZone = z2;
+        }
+
         // プロパティ
         public BattleState CurrentState => currentState;
         public Player Player1 => player1;
@@ -67,6 +82,10 @@ namespace Game.Battle
             Debug.Log("BattleManager: StartBattle called.");
             player1 = p1;
             player2 = p2;
+            
+            // Assign UI
+            if (p1HandArea != null) player1.SetUI(p1HandArea, p1PrimaryZone);
+            if (p2HandArea != null) player2.SetUI(p2HandArea, p2PrimaryZone);
 
             // デッキ初期化
             if (cardManager != null)
@@ -84,31 +103,28 @@ namespace Game.Battle
             DetermineFirstPlayer();
 
             currentState = BattleState.PlayerTurn;
+            
+            // Draw 5 cards initially for both players
+            for (int i = 0; i < 5; i++)
+            {
+                player1.DrawCard(cardManager);
+                player2.DrawCard(cardManager);
+            }
+            
             OnBattleStart?.Invoke();
             StartTurn();
         }
 
         /// <summary>
-        /// 先攻を決定（資格数が少ない方が先攻）
+        /// 先攻を決定（ランダム）
+        /// 仕様変更: Bot対戦の場合はプレイヤーが確定先攻だが、現在は区別がつかないため一旦ランダムのみ実装
         /// </summary>
         private void DetermineFirstPlayer()
         {
-            if (player1.OwnedQualificationCount < player2.OwnedQualificationCount)
-            {
-                currentPlayer = player1;
-                Debug.Log($"{player1.Name} が先攻（資格数: {player1.OwnedQualificationCount} < {player2.OwnedQualificationCount}）");
-            }
-            else if (player1.OwnedQualificationCount > player2.OwnedQualificationCount)
-            {
-                currentPlayer = player2;
-                Debug.Log($"{player2.Name} が先攻（資格数: {player2.OwnedQualificationCount} < {player1.OwnedQualificationCount}）");
-            }
-            else
-            {
-                // 同数の場合はランダム
-                currentPlayer = UnityEngine.Random.Range(0, 2) == 0 ? player1 : player2;
-                Debug.Log($"{currentPlayer.Name} が先攻（ランダム）");
-            }
+            // ランダムで決定
+            // TODO: Bot判定が入ったら "Bot対戦の場合はプレイヤーが確定先攻" のロジックを追加
+            currentPlayer = UnityEngine.Random.Range(0, 2) == 0 ? player1 : player2;
+            Debug.Log($"{currentPlayer.Name} が先攻（ランダム）");
 
             currentPlayer.IsMyTurn = true;
             GetOpponent().IsMyTurn = false;
@@ -150,7 +166,12 @@ namespace Game.Battle
                 return;
             }
 
-            EndTurn();
+            // Action Cost Check
+            // Default Action Cost is 1. If 0, do not end turn.
+            if (card.ActionCost > 0)
+            {
+                EndTurn();
+            }
         }
 
         /// <summary>

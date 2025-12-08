@@ -28,16 +28,31 @@ namespace Game.Battle
 
         [Header("Deck")]
         public DeckData Deck;
-        public List<Card> Hand = new List<Card>();
+        public List<CardBase> Hand = new List<CardBase>();
 
         // 場に出ているカード
-        public List<Card> PrimaryCardsInPlay = new List<Card>();
+        public List<CardBase> PrimaryCardsInPlay = new List<CardBase>();
 
         // 山札 (カードIDのリスト)
         public List<string> DrawPile = new List<string>();
 
         // 状態
-        public bool IsDefeated => CurrentHP <= 0;
+        public bool IsDefeated => CurrentHP <= 0 || AreAllPrimaryCardsDefeated;
+        public bool AreAllPrimaryCardsDefeated
+        {
+            get
+            {
+                // PrimaryCardsInPlayが空でない場合のみチェック (初期化前などはfalseとして扱う)
+                if (PrimaryCardsInPlay == null || PrimaryCardsInPlay.Count == 0) return false;
+                
+                foreach (var card in PrimaryCardsInPlay)
+                {
+                    var primaryCard = card as PrimaryCard;
+                    if (primaryCard != null && !primaryCard.IsDead) return false;
+                }
+                return true;
+            }
+        }
         public bool IsMyTurn { get; set; }
 
         public Player()
@@ -107,7 +122,9 @@ namespace Game.Battle
                     var card = cardManager.SpawnCard(cardId);
                     if (card != null)
                     {
-                        PrimaryCardsInPlay.Add(card);
+                        var cardBase = card.GetComponent<CardBase>();
+                        if (cardBase != null)
+                            PrimaryCardsInPlay.Add(cardBase);
                     }
                 }
             }
@@ -133,7 +150,8 @@ namespace Game.Battle
                 var cardData = cardManager.GetRandomPrimaryCard();
                 if (cardData != null) 
                 {
-                    Deck.AddPrimaryCard(cardData.CardId);
+                    string id = string.IsNullOrEmpty(cardData.CardId) ? cardData.name : cardData.CardId;
+                    Deck.AddPrimaryCard(id);
                 }
                 else
                 {
@@ -147,7 +165,8 @@ namespace Game.Battle
                 var cardData = cardManager.GetRandomSupportCard();
                 if (cardData != null)
                 {
-                    Deck.AddSupportCard(cardData.CardId);
+                    string id = string.IsNullOrEmpty(cardData.CardId) ? cardData.name : cardData.CardId;
+                    Deck.AddSupportCard(id);
                 }
                  else
                 {
@@ -170,6 +189,16 @@ namespace Game.Battle
             }
         }
 
+        // UI References
+        public Transform HandArea { get; private set; }
+        // public PrimaryCardZone PrimaryZone { get; private set; } // Redundant, use field
+
+        public void SetUI(Transform handArea, PrimaryCardZone zone)
+        {
+            HandArea = handArea;
+            primaryZone = zone;
+        }
+        
         /// <summary>
         /// カードを引く
         /// </summary>
@@ -184,11 +213,16 @@ namespace Game.Battle
             string cardId = DrawPile[0];
             DrawPile.RemoveAt(0);
 
-            var card = cardManager.SpawnCard(cardId);
+            // Spawn directly into HandArea if set
+            var card = cardManager.SpawnCard(cardId, HandArea);
             if (card != null)
             {
-                Hand.Add(card);
-                Debug.Log($"{Name} がカードを引きました: {card.Name}");
+                var cardBase = card.GetComponent<CardBase>();
+                if (cardBase != null)
+                {
+                    Hand.Add(cardBase);
+                    Debug.Log($"{Name} がカードを引きました: {cardBase.Name}");
+                }
             }
         }
 
@@ -224,15 +258,17 @@ namespace Game.Battle
         /// <summary>
         /// カードを使用（コスト消費）
         /// </summary>
-        public bool CanPlayCard(Card card)
+        public bool CanPlayCard(CardBase card)
         {
             if (card == null) return false;
             
             // コストが体力以下なら使用可能
             if (CurrentHP < card.Cost)
             {
+                Debug.Log($"{Name} はコスト不足でカードを使用できません (HP: {CurrentHP}, Cost: {card.Cost})");
                 return false;
             }
+            
             return true;
         }
     }

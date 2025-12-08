@@ -56,14 +56,24 @@ namespace Game
             Card droppedCard = eventData.pointerDrag.GetComponent<Card>();
             if (droppedCard == null) return;
 
-            if (!CanAcceptCard(droppedCard))
+            // Determine Target (if this zone represents a card, e.g. PrimaryCard)
+            Card targetCard = GetComponentInChildren<Card>(); // If placed on a PrimaryCard slot which has a card
+            if (targetCard == null) targetCard = GetComponent<Card>();
+            
+            // Get Player (assuming P1 for now, but ideally pass via context or find owner)
+            // Simplified: Find Player1 from BattleManager
+            var bm = FindAnyObjectByType<Game.Battle.BattleManager>();
+            var player = bm?.Player1; // TODO: Determine correct player dynamically
+            
+            if (player != null)
             {
-                Debug.Log($"このゾーンには {droppedCard.Name} を配置できません");
-                return;
+                 Game.Battle.CardAction.PlayCard(player, droppedCard, targetCard);
+                 
+                 // If success (Card moved to grave/removed from hand), visual update happens via CardAction
+                 // But CardAction currently just removes from Hand List. 
+                 // We need to destroy the card object or move it to grave queue.
+                 Destroy(droppedCard.gameObject, 0.5f); // Temporary cleanup
             }
-
-            // カードを配置
-            PlaceCard(droppedCard);
         }
 
         /// <summary>
@@ -71,33 +81,29 @@ namespace Game
         /// </summary>
         public bool CanAcceptCard(Card card)
         {
-            if (cardCount >= maxCards) return false;
-            if (acceptAnyType) return true;
-
-            // CardDataからCardTypeを取得する必要がある場合は別途実装
-            // 現在はacceptAnyTypeで制御
-            return true;
+            if (card == null) return false;
+            
+            // Check Card Type vs This Zone
+            // If this is a Primary Slot (Target), we accept Support cards.
+            // If this is Field (Background), we accept Special cards.
+            
+            Card targetCard = GetComponentInChildren<Card>();
+            if (targetCard != null && targetCard.Type == CardType.Primary)
+            {
+                // This is a Primary Card slot (or the card itself)
+                return card.Type == CardType.Support;
+            }
+            
+            // Otherwise assume it's a field play (Special)
+            return card.Type == CardType.Special;
         }
 
         /// <summary>
-        /// カードを配置
+        /// (Legacy) Visual Placement
         /// </summary>
         public void PlaceCard(Card card)
         {
-            if (card == null) return;
-
-            // カードをこのゾーンの子にする
-            card.transform.SetParent(transform);
-            card.transform.localPosition = Vector3.zero;
-
-            // ドラッグを無効化（配置後は動かせないようにする場合）
-            // card.DisableDrag();
-
-            currentCard = card;
-            cardCount++;
-
-            OnCardDropped?.Invoke(card);
-            Debug.Log($"{card.Name} を配置しました");
+           // Logic moved to OnDrop -> CardAction
         }
 
         /// <summary>

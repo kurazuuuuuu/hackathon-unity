@@ -19,16 +19,16 @@ namespace Game
         [SerializeField] private CardManager cardManager;
 
         // 配置されているカード
-        private List<Card> placedCards = new List<Card>();
+        private List<CardBase> placedCards = new List<CardBase>();
 
         // イベント
-        public event Action<Card, int> OnCardPlaced;      // (カード, スロット番号)
-        public event Action<Card, int> OnCardRemoved;     // (カード, スロット番号)
+        public event Action<CardBase, int> OnCardPlaced;      // (カード, スロット番号)
+        public event Action<CardBase, int> OnCardRemoved;     // (カード, スロット番号)
         public event Action OnZoneFull;                   // ゾーンが満杯になった時
 
         public int PlacedCardCount => placedCards.Count;
         public bool IsFull => placedCards.Count >= maxSlots;
-        public IReadOnlyList<Card> PlacedCards => placedCards;
+        public IReadOnlyList<CardBase> PlacedCards => placedCards;
 
         private void Awake()
         {
@@ -77,7 +77,7 @@ namespace Game
                 cardManager = FindAnyObjectByType<CardManager>();
             }
 
-            CardData data = cardManager?.GetCardData(cardId);
+            CardDataBase data = cardManager?.GetCardData(cardId);
             if (data == null) return false;
 
             // 主力カードかチェック
@@ -88,13 +88,18 @@ namespace Game
             }
 
             Card card = cardManager.SpawnCard(data);
-            return PlaceCard(card);
+            if (card != null)
+            {
+                var cardBase = card.GetComponent<CardBase>();
+                return PlaceCard(cardBase);
+            }
+            return false;
         }
 
         /// <summary>
         /// カードを配置
         /// </summary>
-        public bool PlaceCard(Card card)
+        public bool PlaceCard(CardBase card)
         {
             if (card == null) return false;
 
@@ -130,11 +135,11 @@ namespace Game
         /// <summary>
         /// 指定スロットのカードを取り除く
         /// </summary>
-        public Card RemoveCardAt(int slotIndex)
+        public CardBase RemoveCardAt(int slotIndex)
         {
             if (slotIndex < 0 || slotIndex >= placedCards.Count) return null;
 
-            Card removed = placedCards[slotIndex];
+            CardBase removed = placedCards[slotIndex];
             placedCards.RemoveAt(slotIndex);
 
             OnCardRemoved?.Invoke(removed, slotIndex);
@@ -152,7 +157,7 @@ namespace Game
         {
             for (int i = placedCards.Count - 1; i >= 0; i--)
             {
-                Card card = placedCards[i];
+                CardBase card = placedCards[i];
                 placedCards.RemoveAt(i);
                 if (card != null)
                 {

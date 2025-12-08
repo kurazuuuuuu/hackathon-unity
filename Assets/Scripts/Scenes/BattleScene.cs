@@ -32,8 +32,11 @@ namespace Game.Scenes
         [SerializeField] private Button returnButton;
 
         [Header("Debug")]
-        [SerializeField] private bool useDebugPlayers = true;
+        [SerializeField] public bool useDebugPlayers = true;
         [SerializeField] private List<CardData> debugPrimaryCardsP1 = new List<CardData>(); // P1の主力カード手動設定
+
+        [Header("Action Selection")]
+        [SerializeField] private Game.UI.BattleActionSelectionUI actionSelectionUI;
 
         private void Awake()
         {
@@ -260,6 +263,127 @@ namespace Game.Scenes
                 messageText.text = message;
             }
             Debug.Log($"[Battle] {message}");
+        }
+
+        /// <summary>
+        /// 主力カードがクリックされた際にアクション選択UIを表示
+        /// </summary>
+        public void ShowActionSelection(CardBase card)
+        {
+            Debug.Log($"[BattleScene] ShowActionSelection called for: {card?.Name}");
+            
+            if (actionSelectionUI == null)
+            {
+                // Use FindObjectsByType to include inactive objects
+                var results = FindObjectsByType<Game.UI.BattleActionSelectionUI>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+                if (results.Length > 0)
+                {
+                    actionSelectionUI = results[0];
+                }
+                Debug.Log($"[BattleScene] actionSelectionUI found: {actionSelectionUI != null}");
+            }
+            
+            if (actionSelectionUI != null)
+            {
+                Debug.Log("[BattleScene] Calling actionSelectionUI.Show()");
+                actionSelectionUI.Show(card, (isAttack) =>
+                {
+                    if (isAttack)
+                    {
+                        PerformNormalAttack(card);
+                    }
+                    else
+                    {
+                        PerformSpecialSkill(card);
+                    }
+                });
+            }
+            else
+            {
+                Debug.LogWarning("[BattleScene] actionSelectionUI is null!");
+            }
+        }
+
+        private void PerformNormalAttack(CardBase card)
+        {
+            ShowMessage($"{card.Name} で攻撃！対象を選択してください");
+            
+            // Get or create TargetSelectionMode
+            var targetMode = FindAnyObjectByType<Game.UI.TargetSelectionMode>();
+            if (targetMode == null)
+            {
+                var go = new GameObject("TargetSelectionMode");
+                targetMode = go.AddComponent<Game.UI.TargetSelectionMode>();
+            }
+            
+            targetMode.StartTargetSelection(card, true, (target) =>
+            {
+                if (target != null)
+                {
+                    ExecuteAttack(card, target);
+                }
+                else
+                {
+                    ShowMessage("攻撃がキャンセルされました");
+                }
+            });
+        }
+
+        private void PerformSpecialSkill(CardBase card)
+        {
+            if (card.Ability != null)
+            {
+                ShowMessage($"{card.Name} で特殊効果発動！対象を選択してください");
+                
+                var targetMode = FindAnyObjectByType<Game.UI.TargetSelectionMode>();
+                if (targetMode == null)
+                {
+                    var go = new GameObject("TargetSelectionMode");
+                    targetMode = go.AddComponent<Game.UI.TargetSelectionMode>();
+                }
+                
+                targetMode.StartTargetSelection(card, false, (target) =>
+                {
+                    if (target != null)
+                    {
+                        ExecuteSkill(card, target);
+                    }
+                    else
+                    {
+                        ShowMessage("特殊効果がキャンセルされました");
+                    }
+                });
+            }
+            else
+            {
+                ShowMessage($"{card.Name} には特殊効果がありません");
+            }
+        }
+
+        private void ExecuteAttack(CardBase attacker, CardBase target)
+        {
+            int damage = attacker.Power;
+            
+            // Apply damage to target's PrimaryCard
+            var primaryTarget = target.GetComponent<PrimaryCard>();
+            if (primaryTarget != null)
+            {
+                primaryTarget.TakeDamage(damage);
+                ShowMessage($"{attacker.Name} が {target.Name} に {damage} ダメージ！");
+            }
+            
+            // End turn
+            battleManager?.SkipTurn(); // TODO: Replace with proper end turn logic
+        }
+
+        private void ExecuteSkill(CardBase source, CardBase target)
+        {
+            var context = new Game.Abilities.BattleContext(source, target, battleManager?.CurrentPlayer, battleManager);
+            source.Ability?.Activate(context);
+            ShowMessage($"{source.Name} が {target.Name} に特殊効果を発動！");
+            
+            // End turn
+            battleManager?.SkipTurn();
         }
     }
 }

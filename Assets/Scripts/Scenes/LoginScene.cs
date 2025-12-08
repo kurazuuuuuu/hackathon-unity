@@ -13,7 +13,7 @@ namespace Game.Scenes
     public class LoginScene : MonoBehaviour
     {
         [Header("UI - Input")]
-        [SerializeField] private TMP_InputField usernameInput;
+        [SerializeField] private TMP_InputField emailInput;
         [SerializeField] private TMP_InputField passwordInput;
         [SerializeField] private TMP_InputField confirmPasswordInput;
 
@@ -27,10 +27,19 @@ namespace Game.Scenes
         [SerializeField] private TextMeshProUGUI errorText;
         [SerializeField] private TextMeshProUGUI titleText;
 
+        [Header("UI - Verification")]
+        [SerializeField] private GameObject verificationPanel;
+        [SerializeField] private TMP_InputField verificationCodeInput;
+        [SerializeField] private Button verifyButton;
+        [SerializeField] private Button backToSignUpButton;
+        [SerializeField] private TextMeshProUGUI verificationMessageText;
+
         [Header("UI - Loading")]
         [SerializeField] private GameObject loadingPanel;
 
         private bool isSignUpMode = false;
+        private string tempEmailForVerification = "";
+        private string tempPasswordForLogin = "";
 
         private void Start()
         {
@@ -49,9 +58,24 @@ namespace Game.Scenes
                 switchModeButton.onClick.AddListener(OnSwitchModeClicked);
             }
 
+            if (verifyButton != null)
+            {
+                verifyButton.onClick.AddListener(OnVerifyButtonClicked);
+            }
+
+            if (backToSignUpButton != null)
+            {
+                backToSignUpButton.onClick.AddListener(OnBackToSignUpClicked);
+            }
+
             if (loadingPanel != null)
             {
                 loadingPanel.SetActive(false);
+            }
+
+            if (verificationPanel != null)
+            {
+                verificationPanel.SetActive(false);
             }
 
             ClearError();
@@ -67,6 +91,7 @@ namespace Game.Scenes
             if (signUpButton != null)
                 signUpButton.gameObject.SetActive(isSignUpMode);
             
+            // サインアップ時のみ表示するフィールド
             if (confirmPasswordInput != null)
                 confirmPasswordInput.gameObject.SetActive(isSignUpMode);
 
@@ -75,6 +100,10 @@ namespace Game.Scenes
 
             if (switchModeText != null)
                 switchModeText.text = isSignUpMode ? "ログインに戻る" : "新規登録はこちら";
+
+            // 検証パネルが表示されている場合は、他の入力パネルを隠すなどの制御が必要ならここで行う
+            // 今回はVerificationPanelがOverlay的に表示されるか、専用の画面として扱うかによるが
+            // 基本的に検証中はVerificationPanelがActiveになる想定
 
             ClearError();
         }
@@ -85,20 +114,41 @@ namespace Game.Scenes
             UpdateUIMode();
         }
 
+        private void OnBackToSignUpClicked()
+        {
+            if (verificationPanel != null)
+            {
+                verificationPanel.SetActive(false);
+            }
+            // 入力内容はクリアしないでおく（利便性のため）
+        }
+
         private async void OnLoginButtonClicked()
         {
-            string username = usernameInput?.text ?? "";
+            string email = emailInput?.text ?? "";
             string password = passwordInput?.text ?? "";
 
-            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
             {
-                ShowError("ユーザー名とパスワードを入力してください");
+                ShowError("メールアドレスとパスワードを入力してください");
+                return;
+            }
+
+            if (!email.Contains("@"))
+            {
+                ShowError("有効なメールアドレスを入力してください");
+                return;
+            }
+
+            if (ApiClient.Instance == null)
+            {
+                ShowError("システムエラー: ApiClientが初期化されていません。Bootシーンから起動してください。");
                 return;
             }
 
             SetLoading(true);
 
-            var response = await ApiClient.Instance.Login(username, password);
+            var response = await ApiClient.Instance.Login(email, password);
 
             SetLoading(false);
 
@@ -114,13 +164,19 @@ namespace Game.Scenes
 
         private async void OnSignUpButtonClicked()
         {
-            string username = usernameInput?.text ?? "";
+            string email = emailInput?.text ?? "";
             string password = passwordInput?.text ?? "";
             string confirmPassword = confirmPasswordInput?.text ?? "";
 
-            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
             {
-                ShowError("ユーザー名とパスワードを入力してください");
+                ShowError("メールアドレスとパスワードを入力してください");
+                return;
+            }
+
+            if (!email.Contains("@"))
+            {
+                ShowError("有効なメールアドレスを入力してください");
                 return;
             }
 
@@ -144,17 +200,54 @@ namespace Game.Scenes
 
             SetLoading(true);
 
-            var (success, message) = await CognitoAuthManager.Instance.SignUp(username, password);
+            var (success, message) = await CognitoAuthManager.Instance.SignUp(email, password);
 
             SetLoading(false);
 
             if (success)
             {
-                // サインアップ成功後、自動でログイン
-                ShowSuccess("アカウントを作成しました。ログイン中...");
+                // サインアップ成功後、検証画面へ
+                ShowSuccess("確認コードを送信しました。");
+                tempEmailForVerification = email;
+                tempPasswordForLogin = password;
                 
+                if (verificationPanel != null)
+                {
+                    verificationPanel.SetActive(true);
+                    if (verificationMessageText != null)
+                    {
+                        verificationMessageText.text = $"{email} に送信された確認コードを入力してください";
+                    }
+                }
+            }
+            else
+            {
+                ShowError(message);
+            }
+        }
+
+        private async void OnVerifyButtonClicked()
+        {
+            string code = verificationCodeInput?.text ?? "";
+            if (string.IsNullOrEmpty(code))
+            {
+                ShowError("確認コードを入力してください"); // 必要であればVerificationPanel内のエラー表示を使う
+                return;
+            }
+
+            SetLoading(true);
+
+            var (success, message) = await CognitoAuthManager.Instance.ConfirmSignUp(tempEmailForVerification, code);
+
+            SetLoading(false);
+
+            if (success)
+            {
+                ShowSuccess("アカウント認証に成功しました。ログイン中...");
+                
+                // 自動ログイン試行
                 SetLoading(true);
-                var loginResult = await CognitoAuthManager.Instance.SignIn(username, password);
+                var loginResult = await CognitoAuthManager.Instance.SignIn(tempEmailForVerification, tempPasswordForLogin);
                 SetLoading(false);
 
                 if (loginResult.success)
@@ -163,7 +256,8 @@ namespace Game.Scenes
                 }
                 else
                 {
-                    // 自動ログイン失敗時はログイン画面に切り替え
+                    // 認証はできたがログインに失敗した場合
+                    if (verificationPanel != null) verificationPanel.SetActive(false);
                     isSignUpMode = false;
                     UpdateUIMode();
                     ShowError("アカウント作成完了。ログインしてください");
@@ -171,7 +265,7 @@ namespace Game.Scenes
             }
             else
             {
-                ShowError(message);
+                ShowError(message); // ここもVerificationPanel内に出すべきかもしれないが、一旦共通のエラー表示に出す
             }
         }
 
@@ -192,6 +286,14 @@ namespace Game.Scenes
             if (switchModeButton != null)
             {
                 switchModeButton.interactable = !isLoading;
+            }
+            if (verifyButton != null)
+            {
+                verifyButton.interactable = !isLoading;
+            }
+            if (backToSignUpButton != null)
+            {
+                backToSignUpButton.interactable = !isLoading;
             }
         }
 

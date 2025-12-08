@@ -14,11 +14,11 @@ namespace Game
 
         [Header("Card Database")]
         [SerializeField] private bool autoLoadFromResources = true;
-        [SerializeField] private string resourcesPath = "Cards";
-        [SerializeField] private List<CardData> allCards = new List<CardData>();
+        [SerializeField] private string resourcesPath = "Cards"; // If empty, loads from root
+        [SerializeField] private List<CardDataBase> allCards = new List<CardDataBase>();
 
         // カードIDでの高速検索用辞書
-        private Dictionary<string, CardData> cardDictionary = new Dictionary<string, CardData>();
+        private Dictionary<string, CardDataBase> cardDictionary = new Dictionary<string, CardDataBase>();
         private bool isInitialized = false;
 
         private void Awake()
@@ -39,29 +39,30 @@ namespace Game
         }
 
         /// <summary>
-        /// Resourcesフォルダからカードを自動読み込み
+        /// Resourcesフォルダからカードを自動読み込み (CardDataBase型)
         /// </summary>
+        [ContextMenu("Load Cards")]
         private void LoadCardsFromResources()
         {
-            // パス指定なしでResources以下の全CardDataを読み込む（サブフォルダ含む）
-            CardData[] loadedCards = Resources.LoadAll<CardData>("");
+            // パス指定なしでResources以下の全CardDataBaseを読み込む（サブフォルダ含む）
+            string path = string.IsNullOrEmpty(resourcesPath) ? "" : resourcesPath;
+            CardDataBase[] loadedCards = Resources.LoadAll<CardDataBase>(path);
+            
             allCards.Clear();
             allCards.AddRange(loadedCards);
-            Debug.Log($"Resourcesからカードを読み込み: {loadedCards.Length} 枚");
+            Debug.Log($"Resourcesからカードを読み込み: {loadedCards.Length} 枚 (Path: {path}, Type: CardDataBase)");
         }
-
-        // ... (BuildCardDictionary is unchanged) ...
-
+        
         /// <summary>
         /// ランダムな主力カードを取得
         /// </summary>
-        public CardData GetRandomPrimaryCard()
+        public CardDataBase GetRandomPrimaryCard()
         {
             EnsureInitialized();
             var primaryCards = allCards.FindAll(c => c.CardType == CardType.Primary);
             if (primaryCards.Count == 0)
             {
-                Debug.LogWarning("主力カードが見つかりません");
+                Debug.LogWarning("主力カード (Primary) が見つかりません");
                 return null;
             }
             return primaryCards[Random.Range(0, primaryCards.Count)];
@@ -70,13 +71,13 @@ namespace Game
         /// <summary>
         /// ランダムなサポート・特殊カードを取得
         /// </summary>
-        public CardData GetRandomSupportCard()
+        public CardDataBase GetRandomSupportCard()
         {
             EnsureInitialized();
             var supportCards = allCards.FindAll(c => c.CardType == CardType.Support || c.CardType == CardType.Special);
             if (supportCards.Count == 0)
             {
-                Debug.LogWarning("サポートカードが見つかりません");
+                Debug.LogWarning("サポート・特殊カードが見つかりません");
                 return null;
             }
             return supportCards[Random.Range(0, supportCards.Count)];
@@ -106,12 +107,12 @@ namespace Game
         }
 
         /// <summary>
-        /// カードIDからCardDataを取得
+        /// カードIDからCardDataBaseを取得
         /// </summary>
-        public CardData GetCardData(string cardId)
+        public CardDataBase GetCardData(string cardId)
         {
             EnsureInitialized();
-            if (cardDictionary.TryGetValue(cardId, out CardData data))
+            if (cardDictionary.TryGetValue(cardId, out CardDataBase data))
             {
                 return data;
             }
@@ -120,33 +121,51 @@ namespace Game
         }
 
         /// <summary>
-        /// カードIDを指定してカードをスポーン
+        /// カードIDを指定してカードをスポーン（親指定）
         /// </summary>
-        public Card SpawnCard(string cardId)
+        public Card SpawnCard(string cardId, Transform parent = null)
         {
             EnsureInitialized();
-            CardData data = GetCardData(cardId);
+            CardDataBase data = GetCardData(cardId);
             if (data == null) return null;
 
-            return SpawnCard(data);
+            return SpawnCard(data, parent);
         }
 
         /// <summary>
-        /// CardDataを指定してカードをスポーン
+        /// CardDataBaseを指定してカードをスポーン（親指定可能）
         /// </summary>
-        public Card SpawnCard(CardData data)
+        public Card SpawnCard(CardDataBase data, Transform parent = null)
         {
             EnsureInitialized();
-            if (cardPrefab == null)
+
+            // Try to load type-specific prefab using CardHelper
+            string prefabPath = CardHelper.GetCardPrefabPath(data.CardId);
+            GameObject prefabObj = Resources.Load<GameObject>(prefabPath);
+            
+            Card prefabToUse = null;
+
+            if (prefabObj != null)
             {
-                Debug.LogError("カードPrefabが設定されていません");
+                prefabToUse = prefabObj.GetComponent<Card>();
+            }
+
+            // Fallback to inspector reference
+            if (prefabToUse == null)
+            {
+                prefabToUse = cardPrefab;
+            }
+
+            if (prefabToUse == null)
+            {
+                Debug.LogError($"カードPrefabが見つかりません (Path: {prefabPath}, Inspector: {cardPrefab})");
                 return null;
             }
 
-            Transform parent = cardSpawnParent != null ? cardSpawnParent : transform;
-            Card newCard = Instantiate(cardPrefab, parent);
+            Transform spawnParent = parent != null ? parent : (cardSpawnParent != null ? cardSpawnParent : transform);
+            Card newCard = Instantiate(prefabToUse, spawnParent);
             
-            // Z位置をリセット（Prefabの位置がずれている場合の対策）
+            // Z位置をリセット
             RectTransform rt = newCard.GetComponent<RectTransform>();
             if (rt != null)
             {
@@ -155,7 +174,16 @@ namespace Game
                 rt.anchoredPosition3D = pos;
             }
             
+            // Card component initialization
             newCard.Initialize(data);
+            
+            // CardBase component initialization (if exists, e.g., PrimaryCard)
+            var cardBase = newCard.GetComponent<CardBase>();
+            if (cardBase != null && !(newCard is CardBase))
+            {
+                cardBase.Initialize(data);
+            }
+            
             return newCard;
         }
 
@@ -178,9 +206,9 @@ namespace Game
         }
 
         /// <summary>
-        /// ランダムなCardDataを取得
+        /// ランダムなCardDataBaseを取得
         /// </summary>
-        public CardData GetRandomCardData()
+        public CardDataBase GetRandomCardData()
         {
             EnsureInitialized();
             if (allCards.Count == 0)

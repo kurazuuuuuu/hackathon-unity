@@ -22,7 +22,8 @@ namespace Game.Battle
             }
 
             // コストチェック
-            if (!player.CanPlayCard(card))
+            var cardBase = card.GetComponent<CardBase>();
+            if (cardBase == null || !player.CanPlayCard(cardBase))
             {
                 Debug.LogWarning($"{player.Name} は体力が足りません（必要: {card.Cost}, 現在: {player.CurrentHP}）");
                 return;
@@ -63,12 +64,22 @@ namespace Game.Battle
             player.ConsumeHP(support.Cost);
 
             // 対象の主力カードに効果を付与
-            // TODO: 効果付与のロジックを実装（バフなど）
-            // 現状はAbilityを発動させる（対象を指定）
-            support.UseAbility(target);
+            if (support.Ability != null)
+            {
+                 var context = new Game.Abilities.BattleContext(support.GetComponent<CardBase>(), target.GetComponent<CardBase>(), player, BattleManager.Instance);
+                 support.Ability.Activate(context);
+            }
+            else
+            {
+                 // 旧・またはアビリティなし
+                 Debug.Log($"{support.Name} has no ability.");
+                 support.UseAbility(target); // Fallback to old method if any logic remains there
+            }
 
             // 手札から削除
-            player.Hand.Remove(support);
+            var supportBase = support.GetComponent<CardBase>();
+            if (supportBase != null)
+                player.Hand.Remove(supportBase);
             // 墓地へ送るなどの処理が必要ならここに追加
 
             Debug.Log($"{player.Name} がサポートカード [{support.Name}] を [{target.Name}] に使用（コスト: {support.Cost}）");
@@ -83,10 +94,20 @@ namespace Game.Battle
             player.ConsumeHP(card.Cost);
 
             // 自分自身または全体に効果
-            card.UseAbility();
+            if (card.Ability != null)
+            {
+                 var context = new Game.Abilities.BattleContext(card.GetComponent<CardBase>(), null, player, BattleManager.Instance);
+                 card.Ability.Activate(context);
+            }
+            else
+            {
+                 card.UseAbility();
+            }
 
             // 手札から削除
-            player.Hand.Remove(card);
+            var cardBase2 = card.GetComponent<CardBase>();
+            if (cardBase2 != null)
+                player.Hand.Remove(cardBase2);
 
             Debug.Log($"{player.Name} が特殊カード [{card.Name}] を使用（コスト: {card.Cost}）");
         }

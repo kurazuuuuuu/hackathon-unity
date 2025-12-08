@@ -44,6 +44,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7d7f69e7c7431425d998de5c13f97f77, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.System.Auth.CognitoAuthManager
-  userPoolId: us-east-1_qqebMoKUR
-  clientId: 7m57qfsruhnn8un9s6igrgccl
+  userPoolId: us-east-1_C80DTxFP3
+  clientId: 3erdv0lsc0m1it9hbh1p5hhdm7
   region: us-east-1

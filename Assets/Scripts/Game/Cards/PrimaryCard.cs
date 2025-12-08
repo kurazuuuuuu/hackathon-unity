@@ -1,16 +1,29 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using TMPro;
 
 namespace Game
 {
     /// <summary>
     /// 主力資格カード用MonoBehaviour
-    /// 体力表示を追加
+    /// 体力表示を追加、クリックでアクション選択
     /// </summary>
-    public class PrimaryCard : CardBase
+    public class PrimaryCard : CardBase, IPointerClickHandler
     {
         [Header("Primary Card UI")]
         [SerializeField] private TextMeshProUGUI healthText;
+
+        private void Awake()
+        {
+            // Ensure this GameObject has an Image for raycast detection
+            var img = GetComponent<UnityEngine.UI.Image>();
+            if (img == null)
+            {
+                img = gameObject.AddComponent<UnityEngine.UI.Image>();
+                img.color = new Color(0, 0, 0, 0); // Fully transparent
+            }
+            img.raycastTarget = true;
+        }
         
         /// <summary>
         /// 体力値
@@ -21,6 +34,11 @@ namespace Game
         /// 現在の体力（バトル中に変動）
         /// </summary>
         public int CurrentHealth { get; private set; }
+        
+        /// <summary>
+        /// カードが倒されたかどうか
+        /// </summary>
+        public bool IsDead => CurrentHealth <= 0;
         
         /// <summary>
         /// PrimaryCardDataを使用して初期化
@@ -57,7 +75,12 @@ namespace Game
             
             if (healthText != null)
             {
-                healthText.text = $"HP: {CurrentHealth}/{Health}";
+                healthText.text = CurrentHealth.ToString();
+                Debug.Log($"[PrimaryCard] UpdateUI: {gameObject.name} - HP: {CurrentHealth}");
+            }
+            else
+            {
+                Debug.LogWarning($"[PrimaryCard] healthText is null on {gameObject.name}");
             }
         }
         
@@ -92,5 +115,34 @@ namespace Game
         /// 生存しているか
         /// </summary>
         public bool IsAlive => CurrentHealth > 0;
+
+        /// <summary>
+        /// クリック時にアクション選択UIを開く
+        /// </summary>
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            Debug.Log($"[PrimaryCard] Clicked: {gameObject.name}");
+            
+            // Check if in target selection mode
+            var targetMode = FindAnyObjectByType<Game.UI.TargetSelectionMode>();
+            if (targetMode != null && targetMode.IsSelecting)
+            {
+                // Select this card as target - use this (CardBase) directly
+                targetMode.SelectTarget(this);
+                return;
+            }
+            
+            // Normal mode: Show action selection
+            var battleScene = FindAnyObjectByType<Game.Scenes.BattleScene>();
+            if (battleScene != null)
+            {
+                Debug.Log($"[PrimaryCard] Calling ShowActionSelection for card: {Name}");
+                battleScene.ShowActionSelection(this);
+            }
+            else
+            {
+                Debug.LogWarning("[PrimaryCard] BattleScene not found in scene!");
+            }
+        }
     }
 }

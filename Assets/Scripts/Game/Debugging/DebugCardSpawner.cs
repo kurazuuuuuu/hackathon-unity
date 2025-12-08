@@ -34,7 +34,7 @@ namespace Game.Debugging
             }
 
             // ランダムなカードを取得してスポーン
-            CardData randomCard = cardManager.GetRandomCardData();
+            CardDataBase randomCard = cardManager.GetRandomCardData();
             if (randomCard != null)
             {
                 Card card = cardManager.SpawnCard(randomCard);

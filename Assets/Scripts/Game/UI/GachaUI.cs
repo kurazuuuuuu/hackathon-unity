@@ -5,6 +5,7 @@ using Game.Gacha;
 using Game.Data;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using Game.System;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -17,6 +18,7 @@ namespace Game.UI
         [Header("UI References")]
         [SerializeField] private Button btnSinglePull;
         [SerializeField] private Button btnTenPull;
+        [SerializeField] private Button btnBack; // ホーム画面に戻る
         [SerializeField] private Text txtStatus; // Optional: To show status/results
         [SerializeField] private Text txtTicketCount; // Shows current tickets
         [SerializeField] private GachaDirector ticketDirector; // New Dependency
@@ -27,6 +29,7 @@ namespace Game.UI
 
         private void Start()
         {
+            btnBack.onClick.AddListener(OnBack);
             // Fix: Remove accidental Animator that might reset position
             var anim = GetComponent<Animator>();
             if (anim != null) Destroy(anim);
@@ -82,6 +85,11 @@ namespace Game.UI
 
         private void SetupButtons()
         {
+            if (btnBack != null)
+            {
+                btnBack.onClick.RemoveAllListeners();
+                btnBack.onClick.AddListener(OnBack);
+            }
             if (btnSinglePull != null)
             {
                 btnSinglePull.onClick.RemoveAllListeners();
@@ -183,6 +191,14 @@ namespace Game.UI
             if (txtTicketCount != null && currentUser != null)
             {
                 txtTicketCount.text = $"Tickets: {currentUser.GachaTickets}";
+            }
+        }
+
+        private async void OnBack()
+        {
+            if (SceneController.Instance != null)
+            {
+                await SceneController.Instance.GoToHome();
             }
         }
 

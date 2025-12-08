@@ -46,13 +46,13 @@ namespace Game.Editor
             titleRect.sizeDelta = new Vector2(350, 50);
             titleRect.anchoredPosition = new Vector2(0, -40);
 
-            // ユーザー名入力
-            var usernameInput = CreateInputField(loginPanel.transform, "UsernameInput", "ユーザー名");
-            var usernameRect = usernameInput.GetComponent<RectTransform>();
-            usernameRect.anchorMin = new Vector2(0.5f, 1f);
-            usernameRect.anchorMax = new Vector2(0.5f, 1f);
-            usernameRect.sizeDelta = new Vector2(350, 50);
-            usernameRect.anchoredPosition = new Vector2(0, -120);
+            // メールアドレス入力（サインアップ用 - 今はログインにも使用）
+            var emailInput = CreateInputField(loginPanel.transform, "EmailInput", "メールアドレス");
+            var emailRect = emailInput.GetComponent<RectTransform>();
+            emailRect.anchorMin = new Vector2(0.5f, 1f);
+            emailRect.anchorMax = new Vector2(0.5f, 1f);
+            emailRect.sizeDelta = new Vector2(350, 50);
+            emailRect.anchoredPosition = new Vector2(0, -130);
 
             // パスワード入力
             var passwordInput = CreateInputField(loginPanel.transform, "PasswordInput", "パスワード", TMP_InputField.ContentType.Password);
@@ -60,7 +60,7 @@ namespace Game.Editor
             passwordRect.anchorMin = new Vector2(0.5f, 1f);
             passwordRect.anchorMax = new Vector2(0.5f, 1f);
             passwordRect.sizeDelta = new Vector2(350, 50);
-            passwordRect.anchoredPosition = new Vector2(0, -190);
+            passwordRect.anchoredPosition = new Vector2(0, -200);
 
             // パスワード確認入力（サインアップ用）
             var confirmPasswordInput = CreateInputField(loginPanel.transform, "ConfirmPasswordInput", "パスワード確認", TMP_InputField.ContentType.Password);
@@ -68,7 +68,7 @@ namespace Game.Editor
             confirmPasswordRect.anchorMin = new Vector2(0.5f, 1f);
             confirmPasswordRect.anchorMax = new Vector2(0.5f, 1f);
             confirmPasswordRect.sizeDelta = new Vector2(350, 50);
-            confirmPasswordRect.anchoredPosition = new Vector2(0, -260);
+            confirmPasswordRect.anchoredPosition = new Vector2(0, -270);
 
             // ログインボタン
             var loginButton = CreateButton(loginPanel.transform, "LoginButton", "ログイン", new Color(0.2f, 0.6f, 0.9f, 1f));
@@ -120,6 +120,52 @@ namespace Game.Editor
             var loadingText = CreateText(loadingPanel.transform, "LoadingText", "読み込み中...", 24, FontStyles.Normal);
             loadingPanel.SetActive(false);
 
+            // Verification Panel (initially hidden)
+            var verificationPanel = CreatePanel(canvas.transform, "VerificationPanel", new Color(0, 0, 0, 0.85f));
+            var verificationPanelRect = verificationPanel.GetComponent<RectTransform>();
+            SetStretch(verificationPanelRect);
+            verificationPanel.SetActive(false);
+
+            var verificationContainer = CreatePanel(verificationPanel.transform, "Container", new Color(0.15f, 0.15f, 0.2f, 0.95f));
+            var verificationContainerRect = verificationContainer.GetComponent<RectTransform>();
+            verificationContainerRect.anchorMin = new Vector2(0.5f, 0.5f);
+            verificationContainerRect.anchorMax = new Vector2(0.5f, 0.5f);
+            verificationContainerRect.sizeDelta = new Vector2(400, 350);
+            verificationContainerRect.anchoredPosition = Vector2.zero;
+
+            // Verification Message
+            var verificationMessage = CreateText(verificationContainer.transform, "MessageText", "確認コードを入力してください", 18, FontStyles.Normal);
+            var verificationMessageRect = verificationMessage.GetComponent<RectTransform>();
+            verificationMessageRect.anchorMin = new Vector2(0.5f, 1f);
+            verificationMessageRect.anchorMax = new Vector2(0.5f, 1f);
+            verificationMessageRect.sizeDelta = new Vector2(350, 60);
+            verificationMessageRect.anchoredPosition = new Vector2(0, -50);
+
+            // Verification Code Input
+            var verificationCodeInput = CreateInputField(verificationContainer.transform, "CodeInput", "確認コード");
+            var verificationCodeRect = verificationCodeInput.GetComponent<RectTransform>();
+            verificationCodeRect.anchorMin = new Vector2(0.5f, 1f);
+            verificationCodeRect.anchorMax = new Vector2(0.5f, 1f);
+            verificationCodeRect.sizeDelta = new Vector2(350, 50);
+            verificationCodeRect.anchoredPosition = new Vector2(0, -130);
+
+            // Verify Button
+            var verifyButton = CreateButton(verificationContainer.transform, "VerifyButton", "認証する", new Color(0.2f, 0.6f, 0.9f, 1f));
+            var verifyButtonRect = verifyButton.GetComponent<RectTransform>();
+            verifyButtonRect.anchorMin = new Vector2(0.5f, 1f);
+            verifyButtonRect.anchorMax = new Vector2(0.5f, 1f);
+            verifyButtonRect.sizeDelta = new Vector2(350, 50);
+            verifyButtonRect.anchoredPosition = new Vector2(0, -210);
+
+            // Back to SignUp Button
+            var backToSignUpButton = CreateButton(verificationContainer.transform, "BackToSignUpButton", "戻る", new Color(0.5f, 0.5f, 0.5f, 1f));
+            var backToSignUpButtonRect = backToSignUpButton.GetComponent<RectTransform>();
+            backToSignUpButtonRect.anchorMin = new Vector2(0.5f, 1f);
+            backToSignUpButtonRect.anchorMax = new Vector2(0.5f, 1f);
+            backToSignUpButtonRect.sizeDelta = new Vector2(350, 50);
+            backToSignUpButtonRect.anchoredPosition = new Vector2(0, -280);
+
+
             // LoginSceneコンポーネントを探して設定
             var loginScene = FindObjectOfType<LoginScene>();
             if (loginScene == null)
@@ -130,7 +176,7 @@ namespace Game.Editor
 
             // SerializedObjectで参照を設定
             var serializedObject = new SerializedObject(loginScene);
-            serializedObject.FindProperty("usernameInput").objectReferenceValue = usernameInput.GetComponent<TMP_InputField>();
+            serializedObject.FindProperty("emailInput").objectReferenceValue = emailInput.GetComponent<TMP_InputField>();
             serializedObject.FindProperty("passwordInput").objectReferenceValue = passwordInput.GetComponent<TMP_InputField>();
             serializedObject.FindProperty("confirmPasswordInput").objectReferenceValue = confirmPasswordInput.GetComponent<TMP_InputField>();
             serializedObject.FindProperty("loginButton").objectReferenceValue = loginButton.GetComponent<Button>();
@@ -140,10 +186,102 @@ namespace Game.Editor
             serializedObject.FindProperty("errorText").objectReferenceValue = errorText.GetComponent<TextMeshProUGUI>();
             serializedObject.FindProperty("titleText").objectReferenceValue = titleText.GetComponent<TextMeshProUGUI>();
             serializedObject.FindProperty("loadingPanel").objectReferenceValue = loadingPanel;
+            
+            // Verification UI
+            serializedObject.FindProperty("verificationPanel").objectReferenceValue = verificationPanel;
+            serializedObject.FindProperty("verificationCodeInput").objectReferenceValue = verificationCodeInput.GetComponent<TMP_InputField>();
+            serializedObject.FindProperty("verifyButton").objectReferenceValue = verifyButton.GetComponent<Button>();
+            serializedObject.FindProperty("backToSignUpButton").objectReferenceValue = backToSignUpButton.GetComponent<Button>();
+            serializedObject.FindProperty("verificationMessageText").objectReferenceValue = verificationMessage.GetComponent<TextMeshProUGUI>();
+
             serializedObject.ApplyModifiedProperties();
 
             Debug.Log("Login Scene UI generated successfully!");
             EditorUtility.DisplayDialog("完了", "LoginシーンのUIを生成しました", "OK");
+        }
+
+        [MenuItem("Tools/Generate Verification UI Only")]
+        public static void GenerateVerificationUIOnly()
+        {
+            var loginScene = FindObjectOfType<LoginScene>();
+            if (loginScene == null)
+            {
+                EditorUtility.DisplayDialog("エラー", "LoginSceneが見つかりません。シーンを開いているか確認してください。", "OK");
+                return;
+            }
+
+            var serializedObject = new SerializedObject(loginScene);
+            var verificationPanelProperty = serializedObject.FindProperty("verificationPanel");
+
+            if (verificationPanelProperty.objectReferenceValue != null)
+            {
+                EditorUtility.DisplayDialog("情報", "VerificationPanelは既に設定されています。", "OK");
+                return;
+            }
+
+            Canvas canvas = FindObjectOfType<Canvas>();
+            if (canvas == null)
+            {
+                EditorUtility.DisplayDialog("エラー", "Canvasが見つかりません。", "OK");
+                return;
+            }
+
+            // Verification Panel (initially hidden)
+            var verificationPanel = CreatePanel(canvas.transform, "VerificationPanel", new Color(0, 0, 0, 0.85f));
+            var verificationPanelRect = verificationPanel.GetComponent<RectTransform>();
+            SetStretch(verificationPanelRect);
+            verificationPanel.SetActive(false);
+
+            var verificationContainer = CreatePanel(verificationPanel.transform, "Container", new Color(0.15f, 0.15f, 0.2f, 0.95f));
+            var verificationContainerRect = verificationContainer.GetComponent<RectTransform>();
+            verificationContainerRect.anchorMin = new Vector2(0.5f, 0.5f);
+            verificationContainerRect.anchorMax = new Vector2(0.5f, 0.5f);
+            verificationContainerRect.sizeDelta = new Vector2(400, 350);
+            verificationContainerRect.anchoredPosition = Vector2.zero;
+
+            // Verification Message
+            var verificationMessage = CreateText(verificationContainer.transform, "MessageText", "確認コードを入力してください", 18, FontStyles.Normal);
+            var verificationMessageRect = verificationMessage.GetComponent<RectTransform>();
+            verificationMessageRect.anchorMin = new Vector2(0.5f, 1f);
+            verificationMessageRect.anchorMax = new Vector2(0.5f, 1f);
+            verificationMessageRect.sizeDelta = new Vector2(350, 60);
+            verificationMessageRect.anchoredPosition = new Vector2(0, -50);
+
+            // Verification Code Input
+            var verificationCodeInput = CreateInputField(verificationContainer.transform, "CodeInput", "確認コード");
+            var verificationCodeRect = verificationCodeInput.GetComponent<RectTransform>();
+            verificationCodeRect.anchorMin = new Vector2(0.5f, 1f);
+            verificationCodeRect.anchorMax = new Vector2(0.5f, 1f);
+            verificationCodeRect.sizeDelta = new Vector2(350, 50);
+            verificationCodeRect.anchoredPosition = new Vector2(0, -130);
+
+            // Verify Button
+            var verifyButton = CreateButton(verificationContainer.transform, "VerifyButton", "認証する", new Color(0.2f, 0.6f, 0.9f, 1f));
+            var verifyButtonRect = verifyButton.GetComponent<RectTransform>();
+            verifyButtonRect.anchorMin = new Vector2(0.5f, 1f);
+            verifyButtonRect.anchorMax = new Vector2(0.5f, 1f);
+            verifyButtonRect.sizeDelta = new Vector2(350, 50);
+            verifyButtonRect.anchoredPosition = new Vector2(0, -210);
+
+            // Back to SignUp Button
+            var backToSignUpButton = CreateButton(verificationContainer.transform, "BackToSignUpButton", "戻る", new Color(0.5f, 0.5f, 0.5f, 1f));
+            var backToSignUpButtonRect = backToSignUpButton.GetComponent<RectTransform>();
+            backToSignUpButtonRect.anchorMin = new Vector2(0.5f, 1f);
+            backToSignUpButtonRect.anchorMax = new Vector2(0.5f, 1f);
+            backToSignUpButtonRect.sizeDelta = new Vector2(350, 50);
+            backToSignUpButtonRect.anchoredPosition = new Vector2(0, -280);
+
+            // Verification UI
+            verificationPanelProperty.objectReferenceValue = verificationPanel;
+            serializedObject.FindProperty("verificationCodeInput").objectReferenceValue = verificationCodeInput.GetComponent<TMP_InputField>();
+            serializedObject.FindProperty("verifyButton").objectReferenceValue = verifyButton.GetComponent<Button>();
+            serializedObject.FindProperty("backToSignUpButton").objectReferenceValue = backToSignUpButton.GetComponent<Button>();
+            serializedObject.FindProperty("verificationMessageText").objectReferenceValue = verificationMessage.GetComponent<TextMeshProUGUI>();
+
+            serializedObject.ApplyModifiedProperties();
+
+            Debug.Log("Verification UI generated successfully!");
+            EditorUtility.DisplayDialog("完了", "Verification UIのみを追加生成しました", "OK");
         }
 
         private static GameObject CreatePanel(Transform parent, string name, Color color)

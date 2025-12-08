@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 public class CursorEffectManager : MonoBehaviour
 {
@@ -57,17 +58,37 @@ public class CursorEffectManager : MonoBehaviour
         }
     }
 
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
     private void Start()
+    {
+        UpdateCameraReference();
+        CheckRecursivePrefab(cursorEffectPrefab);
+        CheckRecursivePrefab(cursorEffectCirclePrefab);
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        UpdateCameraReference();
+    }
+
+    private void UpdateCameraReference()
     {
         _mainCamera = Camera.main;
         if (_mainCamera == null)
         {
-            Debug.LogError("CursorEffectManager: MainCameraが見つかりません！");
+            // シーンロード直後はまだタグ付きカメラがない場合もあるため、Warningは控えめにするか、
+            // 必要なシーンでのみLogを出すなどが良いが、ここではデバッグ用に残す
+            // Debug.LogWarning("CursorEffectManager: MainCamera not found in this scene.");
         }
-
-        // 再帰呼び出し防止チェック
-        CheckRecursivePrefab(cursorEffectPrefab);
-        CheckRecursivePrefab(cursorEffectCirclePrefab);
     }
 
     private void Update()
@@ -95,7 +116,11 @@ public class CursorEffectManager : MonoBehaviour
             return;
         }
 
-        if (_mainCamera == null) return;
+        if (_mainCamera == null)
+        {
+            _mainCamera = Camera.main;
+            if (_mainCamera == null) return;
+        }
 
         // マウスのスクリーン座標を取得
         Vector2 mousePos = Mouse.current.position.ReadValue();
