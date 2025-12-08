@@ -1,6 +1,7 @@
 using UnityEngine;
 using Game.Data;
 using Game.Network;
+using Game.System.Auth;
 
 public class ApiTest : MonoBehaviour
 {
@@ -24,15 +25,25 @@ public class ApiTest : MonoBehaviour
 
         Debug.Log($"Prepared UserData: {userData.UserName}, Cards: {userData.OwnedCards.Count}");
 
-        // 2. Set Mock Tokens (Simulate Login)
-        Debug.Log("Setting Mock Tokens...");
-        ApiClient.Instance.SetTokens(
-            "mock_access_token",
-            "mock_id_token_user_123",
-            "mock_refresh_token"
-        );
+        // 2. Check CognitoAuthManager
+        if (CognitoAuthManager.Instance == null)
+        {
+            Debug.LogWarning("CognitoAuthManager instance not found. Cannot test without authentication.");
+            Debug.LogWarning("Please ensure CognitoAuthManager prefab is set up in BootLoader.");
+            return;
+        }
 
-        // 3. Wait for server check (optional)
+        // 3. Check if authenticated (in production, user would sign in via LoginScene)
+        if (!CognitoAuthManager.Instance.IsAuthenticated)
+        {
+            Debug.LogWarning("User is not authenticated. Please sign in via LoginScene first.");
+            Debug.Log("For testing, you can manually call CognitoAuthManager.Instance.SignIn(email, password)");
+            return;
+        }
+
+        Debug.Log($"Authenticated as: {CognitoAuthManager.Instance.UserId}");
+
+        // 4. Wait for server check (optional)
         if (!ApiClient.Instance.IsServerAvailable)
         {
             Debug.Log("Waiting for server connection check...");
@@ -41,10 +52,10 @@ public class ApiTest : MonoBehaviour
 
         if (!ApiClient.Instance.IsServerAvailable)
         {
-            Debug.LogWarning("Server might not be available, but attempting save with mock tokens anyway...");
+            Debug.LogWarning("Server might not be available.");
         }
 
-        // 4. Save
+        // 5. Save
         Debug.Log("Sending Save Request...");
         var response = await ApiClient.Instance.SaveUserData(userData);
 

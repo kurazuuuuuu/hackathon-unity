@@ -1,6 +1,7 @@
 using UnityEngine;
 using Game.Network;
 using Game.Multiplayer;
+using Game.System.Auth;
 
 namespace Game.System
 {
@@ -17,6 +18,7 @@ namespace Game.System
         [SerializeField] private GameObject apiClientPrefab;
         [SerializeField] private GameObject matchmakingManagerPrefab;
         [SerializeField] private GameObject networkManagerPrefab;
+        [SerializeField] private GameObject cognitoAuthManagerPrefab;
 
         [Header("Settings")]
         [SerializeField] private bool autoTransitionToTitle = true;
@@ -54,6 +56,19 @@ namespace Game.System
                 Instantiate(sceneControllerPrefab);
             }
 
+            // FramerateLimitter
+            if (framerateLimitterPrefab != null && FindAnyObjectByType<FramerateLimitter>() == null)
+            {
+                var limitter = Instantiate(framerateLimitterPrefab);
+                DontDestroyOnLoad(limitter);
+            }
+
+            // CursorEffectManager
+            if (CursorEffectManager.Instance == null && cursorEffectManagerPrefab != null)
+            {
+                Instantiate(cursorEffectManagerPrefab);
+            }
+
             // ApiClient
             if (ApiClient.Instance == null && apiClientPrefab != null)
             {
@@ -70,6 +85,12 @@ namespace Game.System
             if (networkManagerPrefab != null && FindAnyObjectByType<Unity.Netcode.NetworkManager>() == null)
             {
                 Instantiate(networkManagerPrefab);
+            }
+
+            // CognitoAuthManager
+            if (CognitoAuthManager.Instance == null && cognitoAuthManagerPrefab != null)
+            {
+                Instantiate(cognitoAuthManagerPrefab);
             }
         }
     }

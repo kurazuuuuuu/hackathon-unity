@@ -111,3 +111,6 @@ InitTestScene*.unity*
 
 # Resources
 /[Aa]ssets/Resources/
+
+/[Aa]ssets/Packages/
+/Packages/

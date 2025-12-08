@@ -14,6 +14,7 @@ namespace Game.System
 
         [Header("Settings")]
         [SerializeField] private float minLoadingTime = 0.5f;
+        [SerializeField] private float bgmFadeDuration = 0.5f;
 
         // 状態
         public bool IsLoading { get; private set; }
@@ -53,6 +54,14 @@ namespace Game.System
             Debug.Log($"シーン読み込み開始: {sceneName}");
 
             float startTime = Time.time;
+
+            // BGMをフェードアウト
+            if (BGMManager.Instance != null && BGMManager.Instance.IsPlaying)
+            {
+                BGMManager.Instance.StopBGM(bgmFadeDuration);
+                // フェード完了を待機
+                await Task.Delay((int)(bgmFadeDuration * 1000));
+            }
 
             // 非同期読み込み
             AsyncOperation operation = SceneManager.LoadSceneAsync(sceneName);

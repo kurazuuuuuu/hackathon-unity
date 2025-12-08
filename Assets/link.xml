@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<linker>
+    <!-- AWS SDK Core -->
+    <assembly fullname="AWSSDK.Core" preserve="all"/>
+    
+    <!-- Cognito Identity -->
+    <assembly fullname="AWSSDK.CognitoIdentity" preserve="all"/>
+    
+    <!-- Cognito Identity Provider (User Pools) -->
+    <assembly fullname="AWSSDK.CognitoIdentityProvider" preserve="all"/>
+    
+    <!-- Cognito Authentication Extensions -->
+    <assembly fullname="Amazon.Extensions.CognitoAuthentication" preserve="all"/>
+    
+    <!-- Security Token Service (dependency) -->
+    <assembly fullname="AWSSDK.SecurityToken" preserve="all"/>
+</linker>

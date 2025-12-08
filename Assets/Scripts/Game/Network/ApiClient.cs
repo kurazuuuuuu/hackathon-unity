@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 using Game.Data;
+using Game.System.Auth;
 
 namespace Game.Network
 {
@@ -15,12 +16,10 @@ namespace Game.Network
         [Header("API Settings")]
         [SerializeField] private string baseUrl = "http://localhost:8000";
 
-        // Cognito認証トークン
-        private string accessToken;
-        private string idToken;
-        private string refreshToken;
-
-        public bool IsAuthenticated => !string.IsNullOrEmpty(idToken);
+        // Cognito認証トークン（CognitoAuthManagerから取得）
+        public bool IsAuthenticated => CognitoAuthManager.Instance != null && CognitoAuthManager.Instance.IsAuthenticated;
+        public string IdToken => CognitoAuthManager.Instance?.IdToken;
+        public string UserId => CognitoAuthManager.Instance?.UserId;
         public bool IsServerAvailable { get; private set; } = false;
 
         // サーバー接続確認完了時のイベント
@@ -76,35 +75,42 @@ namespace Game.Network
 
         #region Authentication
         /// <summary>
-        /// ログイン
-        /// POST /v1/user/login
+        /// ログイン（CognitoAuthManager経由）
         /// </summary>
-        public async Task<ApiResponse<LoginResponse>> Login(string username, string email, string password)
+        public async Task<ApiResponse<LoginResponse>> Login(string username, string password)
         {
-            var request = new LoginRequest 
-            { 
-                username = username,
-                email = email, 
-                password = password 
-            };
-            var response = await Post<LoginResponse>("/v1/user/login", request, false);
-
-            if (response.Success && response.Data != null)
+            if (CognitoAuthManager.Instance == null)
             {
-                SetTokens(response.Data.access_token, response.Data.id_token, response.Data.refresh_token);
+                return new ApiResponse<LoginResponse> 
+                { 
+                    Success = false, 
+                    Error = "CognitoAuthManager が初期化されていません" 
+                };
             }
 
-            return response;
-        }
+            var (success, message) = await CognitoAuthManager.Instance.SignIn(username, password);
 
-        /// <summary>
-        /// トークンを設定
-        /// </summary>
-        public void SetTokens(string access, string id, string refresh)
-        {
-            accessToken = access;
-            idToken = id;
-            refreshToken = refresh;
+            if (success)
+            {
+                return new ApiResponse<LoginResponse>
+                {
+                    Success = true,
+                    Data = new LoginResponse
+                    {
+                        access_token = CognitoAuthManager.Instance.AccessToken,
+                        id_token = CognitoAuthManager.Instance.IdToken,
+                        refresh_token = CognitoAuthManager.Instance.RefreshToken
+                    }
+                };
+            }
+            else
+            {
+                return new ApiResponse<LoginResponse>
+                {
+                    Success = false,
+                    Error = message
+                };
+            }
         }
 
         /// <summary>
@@ -112,9 +118,7 @@ namespace Game.Network
         /// </summary>
         public void Logout()
         {
-            accessToken = null;
-            idToken = null;
-            refreshToken = null;
+            CognitoAuthManager.Instance?.SignOut();
         }
         #endregion
 
@@ -171,9 +175,9 @@ namespace Game.Network
 
         private void AddAuthHeader(UnityWebRequest request)
         {
-            if (!string.IsNullOrEmpty(idToken))
+            if (!string.IsNullOrEmpty(IdToken))
             {
-                request.SetRequestHeader("Authorization", $"Bearer {idToken}");
+                request.SetRequestHeader("Authorization", $"Bearer {IdToken}");
             }
         }
 
