@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace Game.Data
 {
@@ -56,8 +57,17 @@ namespace Game.Data
         {
             if (PrimaryCards.Count >= PRIMARY_CARD_COUNT)
             {
+                Debug.LogWarning($"主力カードは最大{PRIMARY_CARD_COUNT}枚までです");
                 return false;
             }
+            
+            // 重複チェック - 同じカードIDは1枚のみ
+            if (PrimaryCards.Contains(cardId))
+            {
+                Debug.LogWarning($"カードID {cardId} は既にデッキに編成されています。同じ主力カードは1枚のみ編成できます。");
+                return false;
+            }
+            
             PrimaryCards.Add(cardId);
             return true;
         }

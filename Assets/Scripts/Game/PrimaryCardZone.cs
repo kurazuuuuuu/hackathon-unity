@@ -17,6 +17,19 @@ namespace Game
 
         [Header("References")]
         [SerializeField] private CardManager cardManager;
+        
+        /// <summary>
+        /// このゾーンの所有者（プレイヤー）
+        /// </summary>
+        public Battle.Player Owner { get; private set; }
+        
+        /// <summary>
+        /// 所有者を設定
+        /// </summary>
+        public void SetOwner(Battle.Player owner)
+        {
+            Owner = owner;
+        }
 
         // 配置されているカード
         private List<CardBase> placedCards = new List<CardBase>();
@@ -45,15 +58,35 @@ namespace Game
                 if (cardSlots.Count == 0)
                 {
                     Debug.Log("スロットが見つからないため、自動生成します");
+
+                    // Check if this is Player 2 (Opponent) based on naming convention
+                    bool isP2 = transform.parent != null && transform.parent.name.Contains("Player2");
+                    
+                    float spacing = 380f; // Increased from 160
+                    float centerOffset = 40f; 
+
                     for (int i = 0; i < maxSlots; i++)
                     {
                         var slotGO = new GameObject($"Slot_{i}");
                         slotGO.transform.SetParent(this.transform, false);
                         
                         var rect = slotGO.AddComponent<RectTransform>();
-                        // 水平配置: -160, 0, 160 (幅600のゾーンを想定)
-                        // i=0 -> -160, i=1 -> 0, i=2 -> 160
-                        rect.anchoredPosition = new Vector2((i - 1) * 160, 0);
+                        
+                        // i=0 (Left), i=1 (Center), i=2 (Right)
+                        float xPos = (i - 1) * spacing;
+                        float yPos = 0;
+
+                        // Center Card Logic
+                        if (i == 1)
+                        {
+                            // P2: Shift Down (-), P1: Shift Up (+)
+                            // Note: If P2 Zone is rotated 180, then "Up" is "Screen Down".
+                            // But current PlayerHUDOrganism doesn't execute rotation on PrimaryZone.
+                            // Assuming NO rotation on parent:
+                            yPos = isP2 ? -centerOffset : centerOffset;
+                        }
+
+                        rect.anchoredPosition = new Vector2(xPos, yPos);
                         
                         cardSlots.Add(slotGO.transform);
                     }
@@ -119,8 +152,30 @@ namespace Game
 
             // ドラッグを無効化（表示専用）
             card.DisableDrag();
+            
+            // Cardコンポーネント（旧）がついている場合、そちらもドラッグ無効化
+            var legacyCard = card.GetComponent<Card>();
+            if (legacyCard != null)
+            {
+                legacyCard.DisableDrag();
+            }
+            
+            // CardDragHandlerがついている場合、コンポーネントごと無効化
+            var dragHandler = card.GetComponent<CardDragHandler>();
+            if (dragHandler != null)
+            {
+                dragHandler.enabled = false;
+            }
 
             placedCards.Add(card);
+            
+            // Set owner for primary cards
+            var primaryCard = card as PrimaryCard;
+            if (primaryCard != null && Owner != null)
+            {
+                primaryCard.SetOwner(Owner);
+            }
+            
             OnCardPlaced?.Invoke(card, slotIndex);
 
             if (IsFull)

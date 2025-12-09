@@ -26,6 +26,7 @@ namespace Game.System.Auth
         public string AccessToken { get; private set; }
         public string RefreshToken { get; private set; }
         public string UserId { get; private set; }
+        public string Email { get; private set; }
         
         public bool IsAuthenticated => !string.IsNullOrEmpty(IdToken);
 
@@ -180,6 +181,7 @@ namespace Game.System.Auth
                 if (response.AuthenticationResult != null)
                 {
                     SetTokens(response.AuthenticationResult);
+                    Email = email; // メールアドレスを保存
                     Debug.Log($"[CognitoAuth] ログイン成功: {email}");
                     OnAuthenticationComplete?.Invoke(true, "ログイン成功");
                     return (true, "ログイン成功");
@@ -272,6 +274,7 @@ namespace Game.System.Auth
             AccessToken = null;
             RefreshToken = null;
             UserId = null;
+            Email = null;
             Debug.Log("[CognitoAuth] ログアウト完了");
         }
         #endregion

@@ -145,13 +145,13 @@ namespace Game.Network
 
         /// <summary>
         /// ユーザーデータを保存
-        /// PUT /v1/user/save
+        /// PUT /v1/user
         /// </summary>
         public async Task<ApiResponse<StatusResponseDto>> SaveUserData(Data.UserData userData)
         {
             var profile = userData.ToApiProfile();
             var request = new UserSaveRequestDto { profile = profile };
-            return await Put<StatusResponseDto>("/v1/user/save", request, true);
+            return await Put<StatusResponseDto>("/v1/user", request, true);
         }
         #endregion
 
@@ -182,6 +182,8 @@ namespace Game.Network
             string url = baseUrl + endpoint;
             string json = JsonUtility.ToJson(body);
 
+            Debug.Log($"[ApiClient] {method} {url}\nBody: {json}");
+
             using (UnityWebRequest request = new UnityWebRequest(url, method))
             {
                 byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
@@ -195,9 +197,18 @@ namespace Game.Network
 
         private void AddAuthHeader(UnityWebRequest request)
         {
+            string email = CognitoAuthManager.Instance?.Email ?? "";
+            
             if (!string.IsNullOrEmpty(IdToken))
             {
-                request.SetRequestHeader("Authorization", $"Bearer {IdToken}");
+                // 形式: email:token
+                string authHeader = $"{email}:{IdToken}";
+                request.SetRequestHeader("Authorization", authHeader);
+                Debug.Log($"[ApiClient] Authorization Header: {email}:{IdToken.Substring(0, Math.Min(IdToken.Length, 20))}...");
+            }
+            else
+            {
+                Debug.LogWarning("[ApiClient] Authorization Header: IdToken is null or empty");
             }
         }
 

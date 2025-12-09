@@ -12,6 +12,7 @@ namespace Game.System
         public const string DeckEdit = "DeckEdit";
         public const string Matching = "Matching";
         public const string Battle = "Battle";
+        public const string BotBattle = "BotBattle";
         public const string Capsule = "Capsule";
     }
 }

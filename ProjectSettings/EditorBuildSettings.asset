@@ -24,11 +24,8 @@ EditorBuildSettings:
     path: Assets/Scenes/Capsule.unity
     guid: a684f393e7bc34d87812369114efd56e
   - enabled: 1
-    path: Assets/Scenes/Matching.unity
-    guid: e5a0c998426c74dc5b45bfe5ec2bdecb
-  - enabled: 1
-    path: Assets/Scenes/Battle.unity
-    guid: 81c052cd702e24c89a27ad6872c88954
+    path: Assets/Scenes/BotBattle.unity
+    guid: 783b0229e01304ba8a1221ecbeaaeb2f
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   m_UseUCBPForAssetBundles: 0

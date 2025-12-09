@@ -1,5 +1,7 @@
 using System;
+using System.Collections;
 using UnityEngine;
+using Game;
 
 namespace Game.Battle
 {
@@ -10,8 +12,17 @@ namespace Game.Battle
     {
         public static BattleManager Instance { get; private set; }
 
-        [Header("Battle State")]
+        [Header("VFX Settings")]
+        [SerializeField] public GameObject AttackVFX;
+        [SerializeField] public GameObject DamageVFX;
+        [SerializeField] public GameObject SkillActivateVFX;
+        [SerializeField] public GameObject SkillHitVFX;
+
+        [Header("State")]
         [SerializeField] private BattleState currentState = BattleState.NotStarted;
+        
+        [Header("Timing")]
+        [SerializeField] private float turnTransitionDelay = 1.5f; // ターン切り替えのディレイ（秒）
 
         // プレイヤー
         private Player player1;
@@ -116,15 +127,23 @@ namespace Game.Battle
         }
 
         /// <summary>
-        /// 先攻を決定（ランダム）
-        /// 仕様変更: Bot対戦の場合はプレイヤーが確定先攻だが、現在は区別がつかないため一旦ランダムのみ実装
+        /// 先攻を決定
+        /// Bot対戦の場合はプレイヤー（Player1）が確定先攻
         /// </summary>
         private void DetermineFirstPlayer()
         {
-            // ランダムで決定
-            // TODO: Bot判定が入ったら "Bot対戦の場合はプレイヤーが確定先攻" のロジックを追加
-            currentPlayer = UnityEngine.Random.Range(0, 2) == 0 ? player1 : player2;
-            Debug.Log($"{currentPlayer.Name} が先攻（ランダム）");
+            // Bot対戦の場合はPlayer1が先攻
+            if (player2.IsBot)
+            {
+                currentPlayer = player1;
+                Debug.Log($"{currentPlayer.Name} が先攻（Bot対戦のため）");
+            }
+            else
+            {
+                // PvPの場合はランダム
+                currentPlayer = UnityEngine.Random.Range(0, 2) == 0 ? player1 : player2;
+                Debug.Log($"{currentPlayer.Name} が先攻（ランダム）");
+            }
 
             currentPlayer.IsMyTurn = true;
             GetOpponent().IsMyTurn = false;
@@ -188,6 +207,13 @@ namespace Game.Battle
             int healAmount = currentPlayer.HealOnSkip();
             OnPlayerHealed?.Invoke(currentPlayer, healAmount);
             
+            // 敗北チェック（毒ダメージなどを考慮する場合ここでもチェック）
+            if (CheckDefeat())
+            {
+                EndBattle();
+                return;
+            }
+            
             EndTurn();
         }
 
@@ -203,6 +229,21 @@ namespace Game.Battle
             currentPlayer = GetOpponent();
             currentPlayer.IsMyTurn = true;
 
+            // ディレイ付きでターン開始
+            StartCoroutine(StartTurnWithDelay());
+        }
+        
+        private IEnumerator StartTurnWithDelay()
+        {
+            yield return new WaitForSeconds(turnTransitionDelay);
+            
+            // バトルが終了していたらターン開始しない
+            if (currentState == BattleState.BattleEnd)
+            {
+                Debug.Log("[BattleManager] バトル終了済みのためターン開始をスキップ");
+                yield break;
+            }
+            
             StartTurn();
         }
 
@@ -229,8 +270,13 @@ namespace Game.Battle
         /// </summary>
         private void EndBattle()
         {
+            // すべてのコルーチンを停止
+            StopAllCoroutines();
+            
             currentState = BattleState.BattleEnd;
             Debug.Log($"=== バトル終了 ===\n勝者: {winner.Name}");
+            
+            // イベント発火（リザルト表示用）
             OnBattleEnd?.Invoke(winner);
         }
 

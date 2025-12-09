@@ -28,6 +28,8 @@ namespace Game.Data
     {
         // ユーザー名
         public string display_name;
+        // レベル
+        public int level;
         // チケット (ガチャなど)
         public int ticket;
 

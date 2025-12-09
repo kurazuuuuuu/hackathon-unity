@@ -4,6 +4,8 @@ using TMPro;
 using Game.System;
 using Game.System.Auth;
 using Game.Network;
+using Game.UI;
+using Game.Data;
 
 namespace Game.Scenes
 {
@@ -154,11 +156,59 @@ namespace Game.Scenes
 
             if (response.Success)
             {
+                // ログイン成功後、ユーザーデータをサーバーから取得・保存を試行
+                await TrySyncUserData();
                 await SceneController.Instance.GoToHome();
             }
             else
             {
                 ShowError(response.Error ?? "ログインに失敗しました");
+            }
+        }
+
+        /// <summary>
+        /// ユーザーデータの同期を試行（取得→必要に応じて初期化→保存）
+        /// </summary>
+        private async global::System.Threading.Tasks.Task TrySyncUserData()
+        {
+            try
+            {
+                SaveOverlayManager.Instance?.Show("データを同期中...");
+
+                // ユーザーデータを取得
+                var userData = await ApiClient.Instance.FetchUserData();
+                
+                if (userData == null)
+                {
+                    // 新規ユーザー: 初期データを作成して保存
+                    Debug.Log("[LoginScene] 新規ユーザー - 初期データを作成");
+                    userData = new UserData(CognitoAuthManager.Instance?.Email ?? "User");
+                    userData.GachaTickets = 10; // 初期チケット
+                    
+                    SaveOverlayManager.Instance?.Show("初期データを保存中...");
+                    var saveResult = await ApiClient.Instance.SaveUserData(userData);
+                    
+                    if (saveResult.Success)
+                    {
+                        Debug.Log("[LoginScene] 初期データ保存成功");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[LoginScene] 初期データ保存失敗: {saveResult.Error}");
+                    }
+                }
+                else
+                {
+                    Debug.Log($"[LoginScene] ユーザーデータ取得成功: {userData.UserName}");
+                }
+            }
+            catch (global::System.Exception e)
+            {
+                Debug.LogError($"[LoginScene] データ同期エラー: {e.Message}");
+            }
+            finally
+            {
+                SaveOverlayManager.Instance?.Hide();
             }
         }
 

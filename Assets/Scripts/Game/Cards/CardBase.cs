@@ -120,8 +120,8 @@ namespace Game
             this.Charge = data.Charge;
             this.Rarity = data.Rarity;
 
-            // CardImageを透明に設定（フレームを見せるため）
-            HideCardImage();
+            // Load card background image
+            LoadCardImage(data.CardId);
             
             UpdateUI();
         }
@@ -198,7 +198,18 @@ namespace Game
             int rarity = CardHelper.GetRarityFromId(cardId);
             string path = $"Textures/Cards/{rarity}x/{cardId}";
             
+            // Try single sprite first
             Sprite sprite = Resources.Load<Sprite>(path);
+            
+            // If null, try LoadAll (for Multiple sprite mode textures)
+            if (sprite == null)
+            {
+                Sprite[] sprites = Resources.LoadAll<Sprite>(path);
+                if (sprites != null && sprites.Length > 0)
+                {
+                    sprite = sprites[0]; // Use first sprite in the sheet
+                }
+            }
             
             if (sprite != null)
             {

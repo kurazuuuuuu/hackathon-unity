@@ -50,7 +50,7 @@ namespace Game.Gacha
             _bgmAudioSource.loop = true;
         }
 
-        public async void PlayGachaSequence(List<CardData> results, global::System.Action onComplete)
+        public async void PlayGachaSequence(List<CardDataBase> results, global::System.Action onComplete)
         {
             Debug.Log($"[GachaDirector] PlayGachaSequence Started at {Time.time}");
             if (isPlaying) return;

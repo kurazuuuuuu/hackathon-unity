@@ -22,7 +22,7 @@ namespace Game.UI
         [Header("Prefabs (Optional)")]
         [SerializeField] private GameObject cardResultItemPrefab; // If null, we generate simple ones
 
-        private List<CardData> currentResults;
+        private List<CardDataBase> currentResults;
         private Action onCompleteCallback;
         private bool isRevealing = false;
         private bool skipRequested = false;
@@ -35,7 +35,7 @@ namespace Game.UI
             if (btnClose != null) btnClose.onClick.AddListener(OnCloseClicked);
         }
 
-        public void ShowResults(List<CardData> cards, Action onComplete)
+        public void ShowResults(List<CardDataBase> cards, Action onComplete)
         {
             currentResults = cards;
             onCompleteCallback = onComplete;
@@ -125,7 +125,7 @@ namespace Game.UI
         /// <summary>
         /// カードを裏面状態で生成する（クリックでめくる用）
         /// </summary>
-        private GameObject SpawnCardFaceDown(CardData card)
+        private GameObject SpawnCardFaceDown(CardDataBase card)
         {
             GameObject itemObj = null;
             
@@ -194,7 +194,7 @@ namespace Game.UI
             return itemObj;
         }
 
-        private void SpawnCard(CardData card, bool instantReveal)
+        private void SpawnCard(CardDataBase card, bool instantReveal)
         {
             GameObject itemObj = null;
             
@@ -241,7 +241,7 @@ namespace Game.UI
             }
         }
         
-        private GameObject CreateFallbackCard(CardData card)
+        private GameObject CreateFallbackCard(CardDataBase card)
         {
             GameObject itemObj = new GameObject($"Card_{card.CardName}");
             itemObj.transform.SetParent(cardGridParent, false);

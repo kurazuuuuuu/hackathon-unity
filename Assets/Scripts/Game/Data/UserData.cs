@@ -11,6 +11,7 @@ namespace Game.Data
     {
         // ユーザー情報
         public string UserName;
+        public int Level;
         public int GachaTickets;
         public bool IsFirstGacha = true; // 初回ガチャフラグ
 
@@ -49,6 +50,7 @@ namespace Game.Data
             var profile = new UserGameProfileDto
             {
                 display_name = UserName,
+                level = Level,
                 ticket = GachaTickets,
                 current_deck_id = CurrentDeckId,
                 // CreatedAt/UpdatedAtは文字列変換 (必要ならISO8601等)
@@ -92,6 +94,7 @@ namespace Game.Data
             if (profile == null) return;
 
             UserName = profile.display_name;
+            Level = profile.level;
             GachaTickets = profile.ticket;
             CurrentDeckId = profile.current_deck_id;
             

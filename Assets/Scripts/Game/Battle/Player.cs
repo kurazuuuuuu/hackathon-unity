@@ -54,6 +54,11 @@ namespace Game.Battle
             }
         }
         public bool IsMyTurn { get; set; }
+        
+        /// <summary>
+        /// このプレイヤーがBotかどうか
+        /// </summary>
+        public bool IsBot { get; set; }
 
         public Player()
         {
@@ -124,7 +129,16 @@ namespace Game.Battle
                     {
                         var cardBase = card.GetComponent<CardBase>();
                         if (cardBase != null)
+                        {
                             PrimaryCardsInPlay.Add(cardBase);
+                            
+                            // Set owner for primary cards
+                            var primaryCard = cardBase as PrimaryCard;
+                            if (primaryCard != null)
+                            {
+                                primaryCard.SetOwner(this);
+                            }
+                        }
                     }
                 }
             }
@@ -144,18 +158,31 @@ namespace Game.Battle
         {
             Deck = new DeckData("Debug Deck");
             
-            // 主力カードを追加
+            // 主力カードを追加（重複しないように）
+            int attempts = 0;
+            int maxAttempts = 50; // 無限ループ防止
             for (int i = 0; i < DeckData.PRIMARY_CARD_COUNT; i++)
             {
-                var cardData = cardManager.GetRandomPrimaryCard();
-                if (cardData != null) 
+                bool added = false;
+                while (!added && attempts < maxAttempts)
                 {
-                    string id = string.IsNullOrEmpty(cardData.CardId) ? cardData.name : cardData.CardId;
-                    Deck.AddPrimaryCard(id);
+                    attempts++;
+                    var cardData = cardManager.GetRandomPrimaryCard();
+                    if (cardData != null) 
+                    {
+                        string id = string.IsNullOrEmpty(cardData.CardId) ? cardData.name : cardData.CardId;
+                        added = Deck.AddPrimaryCard(id); // 重複の場合はfalseが返る
+                    }
+                    else
+                    {
+                        Debug.LogError("デバッグデッキ構築エラー: 主力カードが不足しています");
+                        break;
+                    }
                 }
-                else
+                
+                if (!added)
                 {
-                    Debug.LogError("デバッグデッキ構築エラー: 主力カードが不足しています");
+                    Debug.LogError($"デバッグデッキ構築エラー: 主力カード {i+1} 枚目の追加に失敗しました（試行回数: {attempts}）");
                 }
             }
             

@@ -2,6 +2,9 @@ using System;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Game.Network;
+using Game.UI;
+using Game.Data;
 
 namespace Game.System
 {
@@ -70,6 +73,8 @@ namespace Game.System
             OnSceneLoadStart?.Invoke(sceneName);
             Debug.Log($"シーン読み込み開始: {sceneName}");
 
+            // シーン遷移前にユーザーデータを保存
+            await SaveUserDataAsync();
             float startTime = Time.time;
 
             // BGMをフェードアウト
@@ -147,7 +152,7 @@ namespace Game.System
         /// </summary>
         public async Task GoToMatching()
         {
-            await LoadScene(SceneNames.Matching);
+            await LoadScene(SceneNames.BotBattle);
         }
 
         /// <summary>
@@ -155,7 +160,7 @@ namespace Game.System
         /// </summary>
         public async Task GoToBattle()
         {
-            await LoadScene(SceneNames.Battle);
+            await LoadScene(SceneNames.BotBattle);
         }
 
         /// <summary>
@@ -164,6 +169,41 @@ namespace Game.System
         public async Task GoToGacha()
         {
             await LoadScene(SceneNames.Capsule);
+        }
+
+        /// <summary>
+        /// ユーザーデータを非同期で保存（オーバーレイ表示付き）
+        /// </summary>
+        private async Task SaveUserDataAsync()
+        {
+            if (ApiClient.Instance == null || ApiClient.Instance.UserData == null)
+            {
+                Debug.Log("[SceneController] UserData is null, skipping save.");
+                return;
+            }
+
+            try
+            {
+                SaveOverlayManager.Instance?.Show("保存中...");
+                var result = await ApiClient.Instance.SaveUserData(ApiClient.Instance.UserData);
+                
+                if (result.Success)
+                {
+                    Debug.Log("[SceneController] データ保存成功");
+                }
+                else
+                {
+                    Debug.LogWarning($"[SceneController] データ保存失敗: {result.Error}");
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[SceneController] 保存エラー: {e.Message}");
+            }
+            finally
+            {
+                SaveOverlayManager.Instance?.Hide();
+            }
         }
     }
 }

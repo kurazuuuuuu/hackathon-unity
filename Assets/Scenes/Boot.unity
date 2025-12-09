@@ -292,6 +292,7 @@ MonoBehaviour:
   matchmakingManagerPrefab: {fileID: 2005580664206065606, guid: ff4304f8c72d441e6b4696a4d0a8001b, type: 3}
   networkManagerPrefab: {fileID: 2005580664206065606, guid: ff4304f8c72d441e6b4696a4d0a8001b, type: 3}
   cognitoAuthManagerPrefab: {fileID: 2641493356161928969, guid: e1a4533c567824058a544854400ad682, type: 3}
+  saveOverlayManagerPrefab: {fileID: 2656323508039481948, guid: 2069a77542c954cf2bbd5c1f1d9d2e5c, type: 3}
   autoTransitionToTitle: 1
 --- !u!4 &1713113265
 Transform:

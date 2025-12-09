@@ -27,7 +27,7 @@ namespace Game.Debugging
                 if (scaler != null)
                 {
                     scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-                    scaler.referenceResolution = new Vector2(1920, 1080);
+                    scaler.referenceResolution = new Vector2(3840, 2160);
                     scaler.matchWidthOrHeight = 0.5f;
                 }
                 

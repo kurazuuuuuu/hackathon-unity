@@ -2,6 +2,7 @@ using UnityEngine;
 using Game.Network;
 using Game.Multiplayer;
 using Game.System.Auth;
+using Game.UI;
 
 namespace Game.System
 {
@@ -19,6 +20,7 @@ namespace Game.System
         [SerializeField] private GameObject matchmakingManagerPrefab;
         [SerializeField] private GameObject networkManagerPrefab;
         [SerializeField] private GameObject cognitoAuthManagerPrefab;
+        [SerializeField] private GameObject saveOverlayManagerPrefab;
 
         [Header("Settings")]
         [SerializeField] private bool autoTransitionToTitle = true;
@@ -91,6 +93,12 @@ namespace Game.System
             if (CognitoAuthManager.Instance == null && cognitoAuthManagerPrefab != null)
             {
                 Instantiate(cognitoAuthManagerPrefab);
+            }
+
+            // SaveOverlayManager
+            if (SaveOverlayManager.Instance == null && saveOverlayManagerPrefab != null)
+            {
+                Instantiate(saveOverlayManagerPrefab);
             }
         }
     }

@@ -133,6 +133,9 @@ public class Card : MonoBehaviour
     {
         Initialize(data);
         
+        // Load card image
+        LoadCardImage(data.CardId, data.Rarity);
+        
         // Apply rarity visual style
         var visualizer = GetComponent<Game.UI.CardVisualizer>();
         if (visualizer == null)
@@ -149,12 +152,69 @@ public class Card : MonoBehaviour
     {
         Initialize(data);
         
+        // Load card image
+        LoadCardImage(data.CardId, data.Rarity);
+        
         var visualizer = GetComponent<Game.UI.CardVisualizer>();
         if (visualizer == null)
         {
             visualizer = gameObject.AddComponent<Game.UI.CardVisualizer>();
         }
         visualizer.ApplyRarityStyle(data.Rarity);
+    }
+    
+    /// <summary>
+    /// カード画像をResources/Textures/Cards/からロード
+    /// </summary>
+    private void LoadCardImage(string cardId, int rarity)
+    {
+        // Find CardImage child
+        Transform cardImageTransform = transform.Find("CardImage");
+        if (cardImageTransform == null)
+        {
+            // Try Content/CardImage
+            Transform content = transform.Find("Content");
+            if (content != null) cardImageTransform = content.Find("CardImage");
+        }
+        
+        if (cardImageTransform == null) return;
+        
+        var cardImage = cardImageTransform.GetComponent<UnityEngine.UI.Image>();
+        if (cardImage == null) return;
+        
+        // Build path
+        string path = $"Textures/Cards/{rarity}x/{cardId}";
+        
+        // Try single sprite first
+        Sprite sprite = Resources.Load<Sprite>(path);
+        
+        // If null, try LoadAll (for Multiple sprite mode textures)
+        if (sprite == null)
+        {
+            Sprite[] sprites = Resources.LoadAll<Sprite>(path);
+            if (sprites != null && sprites.Length > 0)
+            {
+                sprite = sprites[0];
+            }
+        }
+        
+        if (sprite != null)
+        {
+            cardImage.sprite = sprite;
+            cardImage.color = Color.white;
+            Debug.Log($"[Card] Loaded card image: {path}");
+        }
+        else
+        {
+            // Fallback
+            Sprite fallback = Resources.Load<Sprite>("Cards/bg_card_test");
+            if (fallback != null)
+            {
+                cardImage.sprite = fallback;
+                cardImage.color = Color.white;
+                Debug.Log($"[Card] Using fallback image for: {cardId}");
+            }
+        }
     }
 
     private void Awake()
@@ -207,11 +267,10 @@ public class Card : MonoBehaviour
 
         if (healText != null)
         {
-            // If it's a Primary card, maybe show Health instead of Heal?
-            // Or use a separate text field if available. Reusing healText for now if it's primary.
+            // If it's a Primary card, show current health only
             if (Type == CardType.Primary)
             {
-                 healText.text = $"HP: {CurrentHealth}/{MaxHealth}";
+                 healText.text = $"{CurrentHealth}";
             }
             else
             {
@@ -276,6 +335,14 @@ public class Card : MonoBehaviour
     public void TakeDamage(int damage)
     {
         if (IsDead) return;
+        
+        // If this is a PrimaryCard, delegate to its TakeDamage method
+        var primaryCard = GetComponent<PrimaryCard>();
+        if (primaryCard != null)
+        {
+            primaryCard.TakeDamage(damage);
+            return;
+        }
 
         // Hook: OnTakeDamage
         for (int i = StatusEffects.Count - 1; i >= 0; i--)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Game.Data;
 using Game.Network;
+using Game.UI;
 
 namespace Game.Gacha
 {
@@ -40,7 +41,7 @@ namespace Game.Gacha
         public const int TICKET_COST_SINGLE = 1;
         public const int TICKET_COST_TEN = 10;
 
-        public async Task<CardData> PullSingle(UserData user)
+        public async Task<CardDataBase> PullSingle(UserData user)
         {
             if (rateTable == null)
             {
@@ -62,7 +63,9 @@ namespace Game.Gacha
             // Save Before Pull (if not debug)
             if (!isDebugMode && ApiClient.Instance != null)
             {
+                 SaveOverlayManager.Instance?.Show("保存中...");
                  await ApiClient.Instance.SaveUserData(user);
+                 SaveOverlayManager.Instance?.Hide();
             }
 
             user.GachaTickets -= TICKET_COST_SINGLE;
@@ -76,13 +79,15 @@ namespace Game.Gacha
             // Save After Pull (if not debug)
             if (!isDebugMode && ApiClient.Instance != null)
             {
+                 SaveOverlayManager.Instance?.Show("保存中...");
                  await ApiClient.Instance.SaveUserData(user);
+                 SaveOverlayManager.Instance?.Hide();
             }
 
             return result;
         }
 
-        public async Task<List<CardData>> PullTen(UserData user)
+        public async Task<List<CardDataBase>> PullTen(UserData user)
         {
             if (rateTable == null)
             {
@@ -104,17 +109,19 @@ namespace Game.Gacha
             // Save Before Pull
             if (!isDebugMode && ApiClient.Instance != null)
             {
+                 SaveOverlayManager.Instance?.Show("保存中...");
                  await ApiClient.Instance.SaveUserData(user);
+                 SaveOverlayManager.Instance?.Hide();
             }
 
             user.GachaTickets -= TICKET_COST_TEN;
 
-            List<CardData> results = new List<CardData>();
+            List<CardDataBase> results = new List<CardDataBase>();
             bool hasHighRarity = false;
 
             for (int i = 0; i < 10; i++)
             {
-                CardData card = null;
+                CardDataBase card = null;
 
                 // If it's the 10th pull (index 9) and we haven't seen a >= 4 star card yet,
                 // force the guarantee logic.
@@ -142,18 +149,20 @@ namespace Game.Gacha
             // Save After Pull
             if (!isDebugMode && ApiClient.Instance != null)
             {
+                 SaveOverlayManager.Instance?.Show("保存中...");
                  await ApiClient.Instance.SaveUserData(user);
+                 SaveOverlayManager.Instance?.Hide();
             }
 
             return results;
         }
 
-        private CardData PullInternal(UserData user)
+        private CardDataBase PullInternal(UserData user)
         {
             float current5StarRate = user.IsFirstGacha ? rateTable.Rate5StarFirstTime : rateTable.Rate5Star;
             float roll = Random.value; // 0.0 to 1.0
 
-            CardData resultCard = null;
+            CardDataBase resultCard = null;
 
             if (roll < current5StarRate)
             {
@@ -181,7 +190,7 @@ namespace Game.Gacha
             return resultCard;
         }
 
-        private CardData Select5Star()
+        private CardDataBase Select5Star()
         {
             // すり抜け判定 (Spook Check)
             // 50% chance to pick from Featured, 50% from Standard
@@ -189,7 +198,7 @@ namespace Game.Gacha
             
             bool isFeatured = Random.value >= rateTable.SpookRate;
             
-            List<CardData> targetPool = null;
+            List<CardDataBase> targetPool = null;
 
             if (rateTable.Featured5Stars != null && rateTable.Featured5Stars.Count > 0 &&
                 rateTable.Standard5Stars != null && rateTable.Standard5Stars.Count > 0)
@@ -208,42 +217,40 @@ namespace Game.Gacha
             return PickRandom(targetPool);
         }
 
-        private CardData Select4Star()
+        private CardDataBase Select4Star()
         {
             // 50% Support, 50% Special
             return SelectFromMixedPool(rateTable.Pool4StarSupport, rateTable.Pool4StarSpecial);
         }
 
-        private CardData Select3Star()
+        private CardDataBase Select3Star()
         {
             // 50% Support, 50% Special
             return SelectFromMixedPool(rateTable.Pool3StarSupport, rateTable.Pool3StarSpecial);
         }
 
-        private CardData SelectFromMixedPool(List<CardData> poolA, List<CardData> poolB)
+        private CardDataBase SelectFromMixedPool(List<CardDataBase> poolA, List<CardDataBase> poolB)
         {
-            List<CardData> targetPool = null;
+            bool hasA = poolA != null && poolA.Count > 0;
+            bool hasB = poolB != null && poolB.Count > 0;
             
-            // Assuming 50/50 split if both pools are available
+            // If both pools are empty, return null (caller should handle this)
+            if (!hasA && !hasB)
+            {
+                Debug.LogWarning("SelectFromMixedPool: Both pools are empty!");
+                return null;
+            }
+            
+            // If only one pool has cards, use that
+            if (hasA && !hasB) return PickRandom(poolA);
+            if (!hasA && hasB) return PickRandom(poolB);
+            
+            // Both pools have cards, pick randomly
             bool pickA = Random.value < 0.5f;
-
-            if (poolA != null && poolA.Count > 0 && poolB != null && poolB.Count > 0)
-            {
-                targetPool = pickA ? poolA : poolB;
-            }
-            else if (poolA != null && poolA.Count > 0)
-            {
-                targetPool = poolA;
-            }
-            else
-            {
-                targetPool = poolB;
-            }
-
-            return PickRandom(targetPool);
+            return PickRandom(pickA ? poolA : poolB);
         }
 
-        private CardData PullGuaranteed4Star(UserData user)
+        private CardDataBase PullGuaranteed4Star(UserData user)
         {
             // 4-Star or Higher Guarantee
             // Logic: 
@@ -254,7 +261,7 @@ namespace Game.Gacha
             float current5StarRate = user.IsFirstGacha ? rateTable.Rate5StarFirstTime : rateTable.Rate5Star;
             float roll = Random.value; 
 
-            CardData resultCard = null;
+            CardDataBase resultCard = null;
 
             if (roll < current5StarRate)
             {
@@ -286,38 +293,35 @@ namespace Game.Gacha
                 rateTable.SpookRate = 0.5f;
             }
 
-            // Real Cards
-            rateTable.Featured5Stars = new List<CardData>();
-            rateTable.Standard5Stars = new List<CardData>();
-            rateTable.Pool4StarSupport = new List<CardData>();
-            rateTable.Pool4StarSpecial = new List<CardData>();
-            rateTable.Pool3StarSupport = new List<CardData>();
-            rateTable.Pool3StarSpecial = new List<CardData>();
+            // Real Cards - use CardDataBase to support PrimaryCardData
+            rateTable.Featured5Stars = new List<CardDataBase>();
+            rateTable.Standard5Stars = new List<CardDataBase>();
+            rateTable.Pool4StarSupport = new List<CardDataBase>();
+            rateTable.Pool4StarSpecial = new List<CardDataBase>();
+            rateTable.Pool3StarSupport = new List<CardDataBase>();
+            rateTable.Pool3StarSpecial = new List<CardDataBase>();
 
             // Load 3-Stars (3x)
-            var cards3 = Resources.LoadAll<CardData>("Cards/3x");
+            var cards3 = Resources.LoadAll<CardDataBase>("Cards/3x");
             foreach(var c in cards3)
             {
-                InjectRarity(c, 3);
                 if (c.CardType == CardType.Support) rateTable.Pool3StarSupport.Add(c);
                 else rateTable.Pool3StarSpecial.Add(c);
             }
 
             // Load 4-Stars (4x)
-            var cards4 = Resources.LoadAll<CardData>("Cards/4x");
+            var cards4 = Resources.LoadAll<CardDataBase>("Cards/4x");
             foreach(var c in cards4)
             {
-                InjectRarity(c, 4);
                 if (c.CardType == CardType.Support) rateTable.Pool4StarSupport.Add(c);
                 else rateTable.Pool4StarSpecial.Add(c);
             }
 
-            // Load 5-Stars (5x)
-            var cards5 = Resources.LoadAll<CardData>("Cards/5x");
+            // Load 5-Stars (5x) - These are PrimaryCardData
+            var cards5 = Resources.LoadAll<CardDataBase>("Cards/5x");
             foreach(var c in cards5)
             {
-                InjectRarity(c, 5);
-                // 5A, 5B, 5C as Featured (based on user request in previous turn diff)
+                // 5A, 5B, 5C as Featured
                 if (c.name == "5A" || c.name == "5B" || c.name == "5C") rateTable.Featured5Stars.Add(c);
                 else rateTable.Standard5Stars.Add(c);
             }
@@ -325,13 +329,7 @@ namespace Game.Gacha
             Debug.Log($"GachaManager data loaded from Resources. ☆5: {rateTable.Featured5Stars.Count+rateTable.Standard5Stars.Count}, ☆4: {rateTable.Pool4StarSupport.Count+rateTable.Pool4StarSpecial.Count}, ☆3: {rateTable.Pool3StarSupport.Count+rateTable.Pool3StarSpecial.Count}");
         }
 
-        private void InjectRarity(CardData card, int rarity)
-        {
-            var field = typeof(CardData).GetField("rarity", global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance);
-            if(field != null) field.SetValue(card, rarity);
-        }
-
-        private CardData PickRandom(List<CardData> pool)
+        private CardDataBase PickRandom(List<CardDataBase> pool)
         {
             if (pool == null || pool.Count == 0) return null;
             int index = Random.Range(0, pool.Count);

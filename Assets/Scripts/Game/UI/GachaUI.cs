@@ -119,7 +119,7 @@ namespace Game.UI
             if (card != null)
             {
                 Debug.Log($"GachaUI: Pulled {card.CardName} (☆{card.Rarity})");
-                PlaySequence(new List<CardData>{card});
+                PlaySequence(new List<CardDataBase>{card});
             }
             else
             {
@@ -130,7 +130,7 @@ namespace Game.UI
             UpdateTicketUI();
         }
 
-        private void PlaySequence(List<CardData> cards)
+        private void PlaySequence(List<CardDataBase> cards)
         {
             if (ticketDirector != null)
             {

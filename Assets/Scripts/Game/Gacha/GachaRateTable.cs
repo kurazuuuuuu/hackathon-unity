@@ -13,15 +13,15 @@ namespace Game.Gacha
         public float SpookRate = 0.5f; // すり抜け確率 (50%)
 
         [Header("Card Pools")]
-        public List<CardData> Featured5Stars;
-        public List<CardData> Standard5Stars;
+        public List<CardDataBase> Featured5Stars;
+        public List<CardDataBase> Standard5Stars;
         
         // 4 Star Pools
-        public List<CardData> Pool4StarSupport;
-        public List<CardData> Pool4StarSpecial;
+        public List<CardDataBase> Pool4StarSupport;
+        public List<CardDataBase> Pool4StarSpecial;
 
         // 3 Star Pools
-        public List<CardData> Pool3StarSupport;
-        public List<CardData> Pool3StarSpecial;
+        public List<CardDataBase> Pool3StarSupport;
+        public List<CardDataBase> Pool3StarSpecial;
     }
 }
